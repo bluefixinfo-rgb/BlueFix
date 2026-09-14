@@ -218,55 +218,6 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 .footer-bottom{color:var(--muted); font-size:12.5px; text-align:center; padding-top:24px; border-top:1px solid var(--line);}
 .footer-bottom a{color:var(--muted);}
 
-/* ---- Status-Umschalter (unten RECHTS, erst nach 5x Tippen sichtbar, dann PIN-geschützt) ---- */
-.tap-zone-br{ position:fixed; bottom:0; right:0; width:72px; height:72px; z-index:99; background:transparent; }
-.status-switcher{ position:fixed; bottom:22px; right:22px; z-index:100; opacity:0; pointer-events:none; transition:opacity .2s ease; }
-.status-switcher.revealed{ opacity:1; pointer-events:auto; }
-.switcher-toggle{
-  width:48px; height:48px; border-radius:50%;
-  background:var(--bg-panel-2); border:1px solid var(--line);
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-  box-shadow:0 10px 26px -10px rgba(0,0,0,0.6);
-  transition:transform .15s ease, border-color .15s ease;
-}
-.switcher-toggle:hover{transform:translateY(-2px); border-color:var(--blue-dim);}
-.switcher-toggle svg{width:20px; height:20px; stroke:var(--muted);}
-.switcher-panel{
-  position:absolute; bottom:58px; right:0; width:230px;
-  background:var(--bg-panel-2); border:1px solid var(--line); border-radius:16px;
-  padding:16px; display:none; flex-direction:column; gap:10px;
-  box-shadow:0 20px 50px -20px rgba(0,0,0,0.7);
-}
-.status-switcher.open .switcher-panel{display:flex;}
-.switcher-panel .panel-title{ font-size:11px; letter-spacing:0.6px; text-transform:uppercase; color:var(--muted); margin:0 0 2px; }
-.pin-step input{
-  width:100%; background:var(--bg-panel); border:1px solid var(--line); color:var(--white);
-  font-family:var(--serif); font-weight:700; font-size:22px; letter-spacing:10px; text-align:center;
-  border-radius:10px; padding:10px 0 10px 10px; margin-bottom:10px;
-}
-.pin-step input:focus{outline:none; border-color:var(--blue-light);}
-.pin-step button{
-  width:100%; background:var(--blue); border:none; color:#fff; font-weight:600; font-size:13.5px;
-  border-radius:10px; padding:10px; cursor:pointer; font-family:var(--sans);
-}
-.pin-step .pin-error{ color:#ff8f8f; font-size:12px; margin:0 0 8px; display:none; }
-.pin-step.shake .pin-error{display:block;}
-.pin-step.shake input{ border-color:#e34848; animation:switcherShakeHome .3s ease; }
-@keyframes switcherShakeHome{ 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
-.options-step{display:none;}
-.options-step.visible{display:flex; flex-direction:column; gap:8px;}
-.switcher-panel button.opt{
-  display:flex; align-items:center; gap:10px;
-  background:transparent; border:1px solid var(--line); border-radius:10px;
-  padding:9px 12px; color:var(--white); font-size:13.5px; font-weight:500; font-family:var(--sans);
-  cursor:pointer; text-align:left; transition:border-color .15s ease, background .15s ease;
-}
-.switcher-panel button.opt:hover{background:rgba(255,255,255,0.03);}
-.switcher-panel button.opt.active{border-color:var(--blue-light); background:rgba(30,111,239,0.08);}
-.switcher-panel .swatch{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
-.swatch.green{background:#2fbf71;}
-.swatch.orange{background:#f5a623;}
-.swatch.red{background:#e34848;}
 </style>
 </head>
 <body>
@@ -1021,40 +972,15 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   document.getElementById('diagnosePreis').textContent = DIAGNOSE_PREIS;
   render();
 </script>
-<!-- Status-Umschalter: erst nach 5x Tippen unten RECHTS sichtbar, dann PIN-geschützt -->
-<div class="tap-zone-br" id="tapZoneBR" aria-hidden="true"></div>
-<div class="status-switcher" id="statusSwitcherHome">
-  <button class="switcher-toggle" id="switcherToggleHome" aria-label="Seite umschalten" title="Seite umschalten">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
-  <div class="switcher-panel">
-    <div class="pin-step" id="pinStepHome">
-      <p class="panel-title">Code eingeben</p>
-      <input type="password" id="pinInputHome" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
-      <p class="pin-error">Falscher Code</p>
-      <button id="pinConfirmHome">Bestätigen</button>
-    </div>
-    <div class="options-step" id="optionsStepHome">
-      <p class="panel-title">Welche Seite sehen Besucher?</p>
-      <button class="opt" data-status="green"><span class="swatch green"></span> Startseite (normal)</button>
-      <button class="opt" data-status="orange"><span class="swatch orange"></span> Wartungsseite (Wartungsarbeiten)</button>
-      <button class="opt" data-status="red"><span class="swatch red"></span> Wartungsseite (Störung)</button>
-      <p class="applied-note">Gilt sofort für alle Besucher.</p>
-    </div>
-  </div>
-</div>
-
 <script>
 (function(){
-  const PIN_CODE = '2255';
   const OVERRIDE_KEY = 'bluefix_status_override';
 
-  /* HIER die eigene Firebase-Datenbank-URL eintragen (ohne /status.json am Ende) -
-     dieselbe URL wie in index.html. */
+  /* Gleiche Firebase-Datenbank-URL wie im Admin-Panel (index.html), von wo
+     aus der Status jetzt umgestellt wird. Diese Seite liest den Status nur
+     noch und leitet Besucher bei Bedarf auf die Wartungsseite um. */
   const FIREBASE_DB_URL = 'https://bluefix-status-default-rtdb.europe-west1.firebasedatabase.app';
   const backendConfigured = FIREBASE_DB_URL.indexOf('HIER-DEINE-FIREBASE-URL') === -1;
-
-  let currentOverride = null;
 
   function redirectIfMaintenance(status){
     if (status === 'orange' || status === 'red') {
@@ -1068,7 +994,6 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(status => {
         if (status && ['green','orange','red'].includes(status)) {
-          currentOverride = status;
           try { localStorage.setItem(OVERRIDE_KEY, status); } catch(e) {}
           redirectIfMaintenance(status);
         }
@@ -1077,91 +1002,13 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
         /* Backend nicht erreichbar -> letzten bekannten Wert dieses Geräts nehmen */
         let cached = null;
         try { cached = localStorage.getItem(OVERRIDE_KEY); } catch(e) {}
-        currentOverride = cached;
         redirectIfMaintenance(cached);
       });
   } else {
-    try { currentOverride = localStorage.getItem(OVERRIDE_KEY); } catch(e) {}
-    redirectIfMaintenance(currentOverride);
+    let cached = null;
+    try { cached = localStorage.getItem(OVERRIDE_KEY); } catch(e) {}
+    redirectIfMaintenance(cached);
   }
-
-  const tapZone = document.getElementById('tapZoneBR');
-  const switcher = document.getElementById('statusSwitcherHome');
-  const toggleBtn = document.getElementById('switcherToggleHome');
-  const pinStep = document.getElementById('pinStepHome');
-  const pinInput = document.getElementById('pinInputHome');
-  const pinConfirm = document.getElementById('pinConfirmHome');
-  const optionsStep = document.getElementById('optionsStepHome');
-  const optionButtons = optionsStep.querySelectorAll('button[data-status]');
-
-  let tapCount = 0;
-  let lastTap = 0;
-  tapZone.addEventListener('click', () => {
-    const now = Date.now();
-    if (now - lastTap > 1500) tapCount = 0;
-    tapCount++;
-    lastTap = now;
-    if (tapCount >= 5) {
-      switcher.classList.add('revealed');
-      tapCount = 0;
-    }
-  });
-
-  toggleBtn.addEventListener('click', () => {
-    switcher.classList.toggle('open');
-    if (switcher.classList.contains('open')) {
-      pinInput.value = '';
-      pinInput.focus();
-    }
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!switcher.contains(e.target) && !tapZone.contains(e.target)) {
-      switcher.classList.remove('open');
-      pinStep.classList.remove('shake');
-      optionsStep.classList.remove('visible');
-      pinStep.style.display = 'block';
-    }
-  });
-
-  function tryUnlock(){
-    if (pinInput.value === PIN_CODE) {
-      pinStep.style.display = 'none';
-      optionsStep.classList.add('visible');
-      const current = currentOverride || 'green';
-      optionButtons.forEach(b => b.classList.toggle('active', b.dataset.status === current));
-    } else {
-      pinStep.classList.add('shake');
-      setTimeout(() => pinStep.classList.remove('shake'), 300);
-    }
-  }
-  pinConfirm.addEventListener('click', tryUnlock);
-  pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
-
-  optionButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const status = btn.dataset.status;
-      try { localStorage.setItem(OVERRIDE_KEY, status); } catch(e) {}
-      currentOverride = status;
-      optionButtons.forEach(b => b.classList.toggle('active', b === btn));
-      switcher.classList.remove('open');
-
-      if (backendConfigured) {
-        /* Im Hintergrund speichern, NICHT auf die Antwort warten - so hängt der
-           Wechsel nie, egal ob die Datenbank erreichbar ist oder nicht. */
-        fetch(FIREBASE_DB_URL + '/status.json', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(status),
-          keepalive: true
-        }).catch(() => { /* lokal ist es trotzdem schon umgestellt */ });
-      }
-
-      if (status === 'orange' || status === 'red') {
-        window.location.href = 'index.html';
-      }
-    });
-  });
 })();
 </script>
 
