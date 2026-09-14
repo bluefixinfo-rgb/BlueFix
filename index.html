@@ -29,6 +29,7 @@ body{
   display:flex; align-items:flex-start; justify-content:center; padding:56px 24px 24px;
   min-height:100%;
   position:relative; overflow-x:hidden;
+  opacity:0; transition:opacity .18s ease;
 }
 
 body::before{
@@ -208,7 +209,11 @@ body.status-red .eyebrow .dot{ background:#e34848; box-shadow:0 0 0 3px rgba(227
         window.location.replace('homepage.html');
       } else if (cached === 'orange' || cached === 'red') {
         document.body.className = 'status-' + cached;
+        document.body.style.opacity = '1';
       }
+      /* Sicherheitsnetz: falls die Statusprüfung mal länger dauert oder
+         fehlschlägt, Seite spätestens nach 2.5s trotzdem anzeigen. */
+      setTimeout(function(){ document.body.style.opacity = '1'; }, 2500);
       /* Kein Cache vorhanden (erster Besuch) -> Karte bleibt bewusst leer,
          bis die echte Antwort von Firebase weiter unten da ist. */
     } catch(e) {}
@@ -322,6 +327,7 @@ body.status-red .eyebrow .dot{ background:#e34848; box-shadow:0 0 0 3px rgba(227
 
   function setStatus(status){
     document.body.className = 'status-' + status;
+    if (status !== 'green') { document.body.style.opacity = '1'; }
   }
 
   function applyIfValid(status){
