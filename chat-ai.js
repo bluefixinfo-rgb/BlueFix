@@ -188,7 +188,30 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method === 'GET') {
-    return res.status(200).json({ ok: true, function: 'chat-ai', hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY, hasOneSignalKey: !!process.env.ONESIGNAL_REST_API_KEY, models: MODELS });
+    const out = { ok: true, function: 'chat-ai', hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY, hasOneSignalKey: !!process.env.ONESIGNAL_REST_API_KEY, models: MODELS };
+    // Selbsttest: .../api/chat-ai?test=1 prueft Firestore lesen + einen Mini-Aufruf bei Anthropic
+    let test = false;
+    try { test = new URL(req.url, 'http://x').searchParams.has('test'); } catch (e) {}
+    if (test) {
+      try { const r = await fetch(`${FS}/livechat_sessions?pageSize=1`, { signal: AbortSignal.timeout(6000) }); out.firestoreRead = r.status; }
+      catch (e) { out.firestoreRead = 'Fehler: ' + String(e.message || e).slice(0, 80); }
+      if (process.env.ANTHROPIC_API_KEY) {
+        out.anthropic = [];
+        for (const model of MODELS) {
+          try {
+            const r = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: 'user', content: 'Hi' }] }),
+              signal: AbortSignal.timeout(8000)
+            });
+            out.anthropic.push({ model, status: r.status, error: r.ok ? undefined : (await r.text().catch(() => '')).slice(0, 200) });
+            if (r.ok) break;
+          } catch (e) { out.anthropic.push({ model, error: String(e.message || e).slice(0, 80) }); }
+        }
+      }
+    }
+    return res.status(200).json(out);
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
