@@ -1258,6 +1258,18 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 .bfc-typing i{width:7px; height:7px; border-radius:50%; background:#8a99b8; animation:bfDot 1.2s infinite ease-in-out;}
 .bfc-typing i:nth-child(2){animation-delay:.18s;} .bfc-typing i:nth-child(3){animation-delay:.36s;}
 @keyframes bfDot{0%,80%,100%{opacity:.25; transform:translateY(0);}40%{opacity:1; transform:translateY(-3px);}}
+#bfChat.kb .bfc-head{padding:8px 12px; gap:10px;}
+#bfChat.kb .bfc-av{width:30px; height:30px; font-size:14px;}
+#bfChat.kb .bfc-ti b{font-size:14.5px;}
+#bfChat.kb .bfc-ti span{display:none;}
+#bfChat.kb .bfc-x{font-size:26px;}
+#bfChat.kb .bfc-msgs{padding:8px 10px; gap:6px;}
+#bfChat.kb .bfc-sys{display:none;}
+#bfChat.kb .bfc-b{font-size:14.5px; padding:8px 12px;}
+#bfChat.kb .bfc-in{padding:8px 10px 8px;}
+#bfChat.kb .bfc-send{width:40px; height:40px;}
+.bfc-in textarea{transition:border-color .15s, box-shadow .15s;}
+.bfc-in textarea:focus{box-shadow:0 0 0 3px rgba(74,156,255,.18);}
 .bfc-err{color:#ff9a9a; font-size:12.5px; text-align:center; padding:6px 12px; background:#070d18; display:none;}
 </style>
 
@@ -1299,13 +1311,14 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
   function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k] = v; } }
 
-  var sid = lsGet('bf_chat_sid');
-  if (!sid || !/^[a-f0-9]{16,40}$/.test(sid)) {
+  function lsDel(k){ try { localStorage.removeItem(k); } catch(e){} delete mem[k]; }
+  function newSid(){
     var a = new Uint8Array(10);
     (window.crypto || window.msCrypto).getRandomValues(a);
-    sid = Array.prototype.map.call(a, function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
-    lsSet('bf_chat_sid', sid);
+    return Array.prototype.map.call(a, function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
   }
+  var sid = lsGet('bf_chat_sid');
+  if (!sid || !/^[a-f0-9]{16,40}$/.test(sid)) { sid = newSid(); lsSet('bf_chat_sid', sid); }
   var short = sid.slice(0,4).toUpperCase();
 
   var $ = function(id){ return document.getElementById(id); };
@@ -1313,7 +1326,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       sendBtn=$('bfcSend'), nameWrap=$('bfcName'), nameIn=$('bfcNameIn'), errEl=$('bfcErr');
 
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
-  var msgs=[], sess={}, isOpen=false, lastSend=0, aiWaitUntil=0, aiTimer=null, scrollYSaved=0;
+  var sessSeen=false, msgs=[], sess={}, isOpen=false, lastSend=0, aiWaitUntil=0, aiTimer=null, scrollYSaved=0;
 
   function loadScript(src){
     return new Promise(function(res,rej){
@@ -1342,6 +1355,11 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     if (unsubSess) unsubSess();
     if (unsubMsgs) unsubMsgs();
     unsubSess = sRef.onSnapshot(function(d){
+      /* Admin hat den Chat geloescht -> hier komplett neu starten (leerer Chat, neue Chat-ID) */
+      if (!d.metadata.fromCache && !d.metadata.hasPendingWrites) {
+        if (d.exists) sessSeen = true;
+        else if (sessSeen || lsGet('bf_chat_started')) { resetChat(); return; }
+      }
       sess = d.exists ? d.data() : {};
       updateBadge();
       render();
@@ -1352,6 +1370,18 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       render();
       if (isOpen) markSeen();
     }, function(){});
+  }
+
+  function resetChat(){
+    if (unsubSess) { unsubSess(); unsubSess = null; }
+    if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
+    ['bf_chat_started','bf_chat_name','bf_chat_open_ping'].forEach(lsDel);
+    sid = newSid(); lsSet('bf_chat_sid', sid); short = sid.slice(0,4).toUpperCase();
+    sRef = db.collection('livechat_sessions').doc(sid);
+    msgs = []; sess = {}; sessSeen = false; aiWaitUntil = 0; clearTimeout(aiTimer);
+    inp.value = ''; inp.style.height = 'auto'; nameIn.value = ''; showErr('');
+    updateBadge(); render();
+    listen();
   }
 
   function markSeen(){
@@ -1427,7 +1457,16 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }), keepalive:true }).catch(function(){}); } catch(e){}
       /* KI antwortet zuerst. Während sie schreibt, zeigen wir "tippt …". */
       aiWaitUntil = Date.now() + 25000; render();
-      try { fetch(AI_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }) }).then(function(){ setTimeout(function(){ aiWaitUntil = 0; render(); }, 1500); }).catch(function(){ aiWaitUntil = 0; render(); }); } catch(e){ aiWaitUntil = 0; }
+      fetch(AI_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }) })
+        .then(function(r){ return r.json().catch(function(){ return {}; }); })
+        .then(function(j){
+          /* Antwort der KI kommt ueber die Datenbank. Wurde nichts geschrieben (z.B. Mitarbeiter hat uebernommen), "tippt ..." sofort ausblenden. */
+          if (!j || !j.ok) { aiWaitUntil = 0; render(); }
+          else setTimeout(function(){ aiWaitUntil = 0; render(); }, 1500);
+        })
+        .catch(function(){ aiWaitUntil = 0; render(); });
+      /* Tastatur offen lassen, damit man direkt weiterschreiben kann */
+      if (isMobileLayout()) { try { inp.focus(); } catch(e){} }
     } catch(e) {
       showErr('Nachricht konnte nicht gesendet werden. Bitte Internetverbindung prüfen – oder ruf uns direkt an.');
     } finally { sendBtn.disabled = false; }
@@ -1459,8 +1498,14 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   }
   if (vv) { vv.addEventListener('resize', fitChat); vv.addEventListener('scroll', fitChat); }
   window.addEventListener('resize', fitChat);
-  inp.addEventListener('focus', function(){ setTimeout(fitChat, 50); setTimeout(fitChat, 300); });
-  nameIn.addEventListener('focus', function(){ setTimeout(fitChat, 50); setTimeout(fitChat, 300); });
+  var kbTimer = null;
+  function setKb(on){ clearTimeout(kbTimer); box.classList.toggle('kb', !!on && isMobileLayout()); setTimeout(fitChat, 30); }
+  function onFocusIn(){ setKb(true); setTimeout(fitChat, 50); setTimeout(fitChat, 300); }
+  function onFocusOut(){ clearTimeout(kbTimer); kbTimer = setTimeout(function(){ var ae = document.activeElement; if (ae !== inp && ae !== nameIn) setKb(false); }, 200); }
+  inp.addEventListener('focus', onFocusIn); nameIn.addEventListener('focus', onFocusIn);
+  inp.addEventListener('blur', onFocusOut); nameIn.addEventListener('blur', onFocusOut);
+  /* Senden-Button nimmt der Eingabe den Fokus nicht weg -> Tastatur bleibt offen */
+  sendBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
 
   /* Dem Team Bescheid geben, dass jemand den Chat geöffnet hat (max. 1x pro 30 Min). */
   function announceOpen(){
@@ -1481,7 +1526,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; }, 50);
   }
   function close(){
-    isOpen = false; box.classList.remove('open'); btn.style.display = 'flex';
+    isOpen = false; box.classList.remove('open', 'kb'); btn.style.display = 'flex';
     box.style.top=''; box.style.height=''; box.style.bottom='';
     lockPage(false); updateBadge();
   }

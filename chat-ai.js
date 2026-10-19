@@ -20,8 +20,15 @@ const SITE_URL = process.env.SITE_URL || 'https://bluefix-website.vercel.app/hom
 const DB = `projects/${PROJECT_ID}/databases/(default)/documents`;
 const FS = `https://firestore.googleapis.com/v1/${DB}`;
 const MAX_AI_REPLIES_PER_CHAT = 40;
+// Hat ein Mitarbeiter zuletzt geantwortet, haelt sich die KI so lange zurueck (danach antwortet sie wieder)
+const HUMAN_PAUSE_MS = 30 * 60 * 1000;
 
 const FALLBACK = 'Danke für deine Nachricht! Unser Team schaut sich das an und meldet sich so schnell wie möglich bei dir hier im Chat.';
+
+function humanActive(f) {
+  const t = val(f.humanAt) || 0;
+  return t > 0 && Date.now() - t < HUMAN_PAUSE_MS;
+}
 
 function val(f) {
   if (!f) return undefined;
@@ -186,7 +193,7 @@ module.exports = async (req, res) => {
     const aiCount = val(f.aiCount) || 0;
     // Nur auf frische Besucher-Nachrichten antworten, nie wenn ein Mensch übernommen hat, nie doppelt
     if (val(f.lastFrom) !== 'visitor' || Date.now() - lastAt > 120000) return res.status(200).json({ skipped: 'not needed' });
-    if (val(f.aiPaused) === true) return res.status(200).json({ skipped: 'human took over' });
+    if (humanActive(f)) return res.status(200).json({ skipped: 'human took over' });
     if ((val(f.aiHandledAt) || 0) >= lastAt) return res.status(200).json({ skipped: 'already answered' });
     if (aiCount >= MAX_AI_REPLIES_PER_CHAT) return res.status(200).json({ skipped: 'limit' });
 
@@ -229,7 +236,7 @@ module.exports = async (req, res) => {
 
     // Wenn der Kunde inzwischen weitergeschrieben hat, übernimmt der neuere Aufruf
     const f2 = await fsGet(`livechat_sessions/${sid}`);
-    if (!f2 || (val(f2.lastMessageAt) || 0) !== lastAt || val(f2.aiPaused) === true) return res.status(200).json({ skipped: 'changed meanwhile' });
+    if (!f2 || (val(f2.lastMessageAt) || 0) !== lastAt || humanActive(f2)) return res.status(200).json({ skipped: 'changed meanwhile' });
 
     const ok = await writeReply(sid, result.reply, result.escalate, result.reason, aiCount);
     if (result.escalate && osKey) {
