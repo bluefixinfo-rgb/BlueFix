@@ -1216,5 +1216,233 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   }
 })();
 </script>
+<!-- ===================== BLUEFIX LIVE-CHAT (Kunden-Chat) ===================== -->
+<style id="bfChatStyle">
+#bfChatBtn{position:fixed; right:18px; bottom:calc(18px + env(safe-area-inset-bottom,0px)); width:60px; height:60px; border-radius:50%; border:1px solid rgba(255,255,255,.25); background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; cursor:pointer; z-index:80; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 26px rgba(30,111,239,.55); -webkit-tap-highlight-color:transparent; transition:transform .2s ease;}
+#bfChatBtn:active{transform:scale(.94);}
+#bfChatBtn svg{width:28px; height:28px;}
+#bfChatBadge{position:absolute; top:-4px; right:-4px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#e34848; color:#fff; font:700 12px/22px 'Inter',sans-serif; text-align:center; display:none; box-shadow:0 0 0 2px #04070d;}
+#bfChat{position:fixed; z-index:95; display:none; flex-direction:column; background:#070d18; color:#f5f8ff; font-family:'Inter',sans-serif; overflow:hidden; inset:0; height:100dvh;}
+#bfChat.open{display:flex; animation:bfUp .28s cubic-bezier(.22,1,.36,1);}
+@keyframes bfUp{from{opacity:0; transform:translateY(18px);}to{opacity:1; transform:none;}}
+@media (min-width:640px){
+  #bfChat{inset:auto 18px 18px auto; width:390px; height:590px; max-height:calc(100dvh - 36px); border-radius:20px; border:1px solid #1c2b45; box-shadow:0 24px 60px rgba(0,0,0,.6);}
+}
+.bfc-head{display:flex; align-items:center; gap:12px; padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px; background:linear-gradient(135deg,#0d2547,#0a1a33); border-bottom:1px solid #1c2b45;}
+@media (min-width:640px){.bfc-head{padding-top:12px;}}
+.bfc-av{width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#4a9cff,#1e6fef); display:flex; align-items:center; justify-content:center; font:700 18px 'Space Grotesk',sans-serif; flex:none;}
+.bfc-ti{flex:1; min-width:0;}
+.bfc-ti b{display:block; font:600 16px 'Space Grotesk',sans-serif;}
+.bfc-ti span{display:block; font-size:12px; color:#8a99b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.bfc-x{background:none; border:none; color:#c9d6f0; font-size:30px; line-height:1; cursor:pointer; padding:0 6px;}
+.bfc-msgs{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 12px; display:flex; flex-direction:column; gap:8px; background:#0b1322;}
+.bfc-sys{align-self:center; font-size:12px; color:#8a99b8; padding:4px 0;}
+.bfc-row{display:flex; flex-direction:column; max-width:82%;}
+.bfc-row.me{align-self:flex-end; align-items:flex-end;}
+.bfc-row.them{align-self:flex-start; align-items:flex-start;}
+.bfc-who{font-size:11.5px; color:#8a99b8; margin:0 4px 3px;}
+.bfc-b{padding:10px 14px; border-radius:18px; font-size:15px; line-height:1.4; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;}
+.bfc-row.me .bfc-b{background:linear-gradient(135deg,#2f7ce0,#14488f); color:#fff; border-bottom-right-radius:5px;}
+.bfc-row.them .bfc-b{background:#f5f8ff; color:#0b1322; border-bottom-left-radius:5px;}
+.bfc-meta{font-size:11px; color:#8a99b8; margin:3px 4px 0;}
+.bfc-name{display:none; padding:8px 12px 0; background:#070d18;}
+.bfc-name.show{display:block;}
+.bfc-name input{width:100%; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:12px; padding:10px 14px; font:16px 'Inter',sans-serif;}
+.bfc-in{display:flex; gap:8px; align-items:flex-end; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); background:#070d18; border-top:1px solid #1c2b45;}
+.bfc-in textarea{flex:1; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:18px; padding:11px 15px; font:16px 'Inter',sans-serif; resize:none; max-height:110px; line-height:1.35;}
+.bfc-in textarea:focus,.bfc-name input:focus{outline:none; border-color:#4a9cff;}
+.bfc-send{width:44px; height:44px; border-radius:50%; border:none; background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center;}
+.bfc-send:disabled{opacity:.5;}
+.bfc-send svg{width:20px; height:20px;}
+.bfc-err{color:#ff9a9a; font-size:12.5px; text-align:center; padding:6px 12px; background:#070d18; display:none;}
+</style>
+
+<button id="bfChatBtn" type="button" aria-label="Chat mit BlueFix öffnen">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg>
+  <span id="bfChatBadge">0</span>
+</button>
+
+<div id="bfChat" role="dialog" aria-label="Chat mit BlueFix">
+  <div class="bfc-head">
+    <div class="bfc-av">B</div>
+    <div class="bfc-ti"><b>BlueFix Support</b><span>Wir antworten so schnell wie möglich</span></div>
+    <button class="bfc-x" id="bfChatClose" type="button" aria-label="Chat schliessen">×</button>
+  </div>
+  <div class="bfc-msgs" id="bfcMsgs"></div>
+  <div class="bfc-err" id="bfcErr"></div>
+  <div class="bfc-name" id="bfcName"><input id="bfcNameIn" type="text" maxlength="40" placeholder="Dein Name (optional)" autocomplete="given-name"></div>
+  <div class="bfc-in">
+    <textarea id="bfcIn" rows="1" maxlength="1000" placeholder="Nachricht schreiben …"></textarea>
+    <button class="bfc-send" id="bfcSend" type="button" aria-label="Senden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* Gleiche Firebase-Datenbank wie das Admin-Panel. */
+  var FB_CONFIG = {
+    apiKey: "AIzaSyCKLqJ-YW_PQ0MRFHQLMZaKWaPc28ScSE8",
+    authDomain: "bluefix-2255.firebaseapp.com",
+    projectId: "bluefix-2255",
+    appId: "1:317301627140:web:cc37ea8ca5d7a8caf71851"
+  };
+  /* Vercel-Funktion, die die Push-Nachricht an Jerome/Thierry schickt (api/chat-notify.js) */
+  var NOTIFY_URL = 'https://bluefix-website.vercel.app/api/chat-notify';
+
+  var mem = {};
+  function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
+  function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e){ mem[k] = v; } }
+
+  var sid = lsGet('bf_chat_sid');
+  if (!sid || !/^[a-f0-9]{16,40}$/.test(sid)) {
+    var a = new Uint8Array(10);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    sid = Array.prototype.map.call(a, function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
+    lsSet('bf_chat_sid', sid);
+  }
+  var short = sid.slice(0,4).toUpperCase();
+
+  var $ = function(id){ return document.getElementById(id); };
+  var btn=$('bfChatBtn'), badge=$('bfChatBadge'), box=$('bfChat'), msgsEl=$('bfcMsgs'), inp=$('bfcIn'),
+      sendBtn=$('bfcSend'), nameWrap=$('bfcName'), nameIn=$('bfcNameIn'), errEl=$('bfcErr');
+
+  var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
+  var msgs=[], sess={}, isOpen=false, lastSend=0;
+
+  function loadScript(src){
+    return new Promise(function(res,rej){
+      var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){ rej(new Error('load '+src)); };
+      document.head.appendChild(s);
+    });
+  }
+  function init(){
+    if (initPromise) return initPromise;
+    initPromise = (async function(){
+      if (!window.firebase) {
+        await loadScript('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
+        await loadScript('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js');
+      }
+      var app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FB_CONFIG);
+      db = firebase.firestore(app);
+      try { db.settings({ experimentalAutoDetectLongPolling:true, useFetchStreams:false, merge:true }); } catch(e){}
+      sRef = db.collection('livechat_sessions').doc(sid);
+      listen();
+    })();
+    initPromise.catch(function(){ initPromise = null; });
+    return initPromise;
+  }
+
+  function listen(){
+    if (unsubSess) unsubSess();
+    if (unsubMsgs) unsubMsgs();
+    unsubSess = sRef.onSnapshot(function(d){
+      sess = d.exists ? d.data() : {};
+      updateBadge();
+      render();
+      if (isOpen) markSeen();
+    }, function(){});
+    unsubMsgs = sRef.collection('messages').orderBy('ts').onSnapshot(function(snap){
+      msgs = snap.docs.map(function(x){ return x.data(); });
+      render();
+      if (isOpen) markSeen();
+    }, function(){});
+  }
+
+  function markSeen(){
+    if (!sRef || !(sess.unreadVisitor > 0) || document.visibilityState !== 'visible') return;
+    sRef.set({ unreadVisitor: 0, visitorSeenAt: Date.now() }, { merge:true }).catch(function(){});
+  }
+
+  function updateBadge(){
+    var n = (!isOpen && sess.unreadVisitor) ? sess.unreadVisitor : 0;
+    badge.style.display = n > 0 ? 'block' : 'none';
+    badge.textContent = n > 9 ? '9+' : n;
+  }
+
+  function hm(ts){ var d=new Date(ts); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+  function el(tag, cls, txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+
+  function render(){
+    if (!isOpen) return;
+    var nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 120;
+    msgsEl.innerHTML = '';
+    msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
+    var w = el('div','bfc-row them');
+    w.appendChild(el('div','bfc-who','BlueFix'));
+    w.appendChild(el('div','bfc-b','Hallo! 👋 Schön, dass du da bist. Schreib uns kurz, worum es geht (z.B. Gerät und Problem) – wir melden uns so schnell wie möglich hier im Chat.'));
+    msgsEl.appendChild(w);
+    var lastMe = -1;
+    msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
+    msgs.forEach(function(m,i){
+      var me = m.from === 'visitor';
+      var row = el('div','bfc-row ' + (me ? 'me' : 'them'));
+      if (!me) row.appendChild(el('div','bfc-who',(m.agent || 'BlueFix') + ' | BlueFix Team'));
+      row.appendChild(el('div','bfc-b',m.text));
+      var meta = hm(m.ts);
+      if (me && i === lastMe) meta += (sess.teamReadAt && sess.teamReadAt >= m.ts) ? ' · ✓✓ Gelesen' : ' · ✓ Gesendet';
+      row.appendChild(el('div','bfc-meta',meta));
+      msgsEl.appendChild(row);
+    });
+    if (nearBottom || msgs.length <= 1) msgsEl.scrollTop = msgsEl.scrollHeight;
+    nameWrap.classList.toggle('show', !msgs.length && !lsGet('bf_chat_name'));
+  }
+
+  function showErr(t){ errEl.textContent = t || ''; errEl.style.display = t ? 'block' : 'none'; }
+
+  async function send(){
+    var text = inp.value.trim().slice(0,1000);
+    if (!text || Date.now() - lastSend < 700) return;
+    lastSend = Date.now();
+    sendBtn.disabled = true; showErr('');
+    try {
+      await init();
+      var name = (nameIn.value || lsGet('bf_chat_name') || '').trim().slice(0,40);
+      if (nameIn.value.trim()) lsSet('bf_chat_name', name);
+      var started = parseInt(lsGet('bf_chat_started') || '0', 10);
+      if (!started) { started = Date.now(); lsSet('bf_chat_started', String(started)); }
+      var now = Date.now();
+      var batch = db.batch();
+      batch.set(sRef, {
+        name: name || 'Besucher', short: short, createdAt: started,
+        lastMessageAt: now, lastText: text.slice(0,140), lastFrom: 'visitor',
+        unreadTeam: firebase.firestore.FieldValue.increment(1),
+        page: (location.pathname || '/').slice(0,80)
+      }, { merge:true });
+      batch.set(sRef.collection('messages').doc(), { from:'visitor', text: text, ts: now });
+      await batch.commit();
+      inp.value = ''; inp.style.height = 'auto';
+      try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }), keepalive:true }).catch(function(){}); } catch(e){}
+    } catch(e) {
+      showErr('Nachricht konnte nicht gesendet werden. Bitte Internetverbindung prüfen – oder ruf uns direkt an.');
+    } finally { sendBtn.disabled = false; }
+  }
+
+  function open(){
+    isOpen = true; box.classList.add('open'); btn.style.display = 'none';
+    document.documentElement.style.overflow = window.innerWidth < 640 ? 'hidden' : '';
+    updateBadge(); render();
+    init().then(function(){ render(); markSeen(); }).catch(function(){ showErr('Chat konnte nicht geladen werden. Bitte später erneut versuchen.'); });
+    setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; }, 50);
+  }
+  function close(){
+    isOpen = false; box.classList.remove('open'); btn.style.display = 'flex';
+    document.documentElement.style.overflow = ''; updateBadge();
+  }
+
+  btn.addEventListener('click', open);
+  $('bfChatClose').addEventListener('click', close);
+  sendBtn.addEventListener('click', send);
+  inp.addEventListener('input', function(){ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+  inp.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover: hover)').matches) { e.preventDefault(); send(); }
+  });
+  document.addEventListener('visibilitychange', function(){ if (isOpen && document.visibilityState === 'visible') markSeen(); });
+
+  /* Wer schon mal geschrieben hat: Antworten im Hintergrund erkennen (rote Zahl am Chat-Button). */
+  if (lsGet('bf_chat_started')) setTimeout(function(){ init().catch(function(){}); }, 1500);
+})();
+</script>
+<!-- ===================== /LIVE-CHAT ===================== -->
+
 </body>
 </html>
