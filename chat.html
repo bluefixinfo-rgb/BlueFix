@@ -90,7 +90,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="bfc-head">
       <button class="bfc-back" id="bfcBack" type="button" aria-label="Zurück zur Website"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <div class="bfc-av">B</div>
-      <div class="bfc-ti"><b>BlueFix Assistent</b><span id="bfcSub">Online · bei Bedarf meldet sich unser Team</span></div>
+      <div class="bfc-ti"><b>BlueFix Assistent</b><span id="bfcSub">KI-Assistent · antwortet sofort</span></div>
     </div>
 
     <!-- Schritt 1: Name -->
@@ -133,7 +133,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   var NOTIFY_URL = 'https://bluefix-website.vercel.app/api/chat-notify';
   var AI_URL = 'https://bluefix-website.vercel.app/api/chat-ai';
   var HOME_URL = 'homepage.html';
-  var AI_FAIL_TEXT = 'Danke für deine Nachricht! Unser Team wurde benachrichtigt und meldet sich so schnell wie möglich hier im Chat bei dir. Dringend? Ruf uns an: 076 229 91 82.';
+  var AI_FAIL_TEXT = 'Danke für deine Nachricht! Unser Team wurde benachrichtigt und meldet sich innerhalb von 24 Stunden (spätestens innerhalb eines Werktags) bei dir. Dringend? Ruf uns an: 076 229 91 82.';
 
   var mem = {};
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
@@ -228,7 +228,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     var name = getName();
     gate.hidden = !!name;
     chatView.hidden = !name;
-    subEl.textContent = name ? 'Du schreibst als ' + name : 'Online · bei Bedarf meldet sich unser Team';
+    subEl.textContent = name ? 'Du schreibst als ' + name : 'KI-Assistent · antwortet sofort';
   }
 
   function render(){
@@ -238,7 +238,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
     var w = el('div','bfc-row them');
     w.appendChild(el('div','bfc-who','BlueFix'));
-    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Ich beantworte dir gern Fragen, z.B. zu Preisen, Garantie oder Ablauf. Geht es um eine Reparatur oder ein Problem, gebe ich es an unser Team weiter – ein Mitarbeiter meldet sich dann bei dir.'));
+    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, meldet sich innerhalb von 24 Stunden ein Mitarbeiter bei dir.'));
     msgsEl.appendChild(w);
     var lastMe = -1;
     msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
