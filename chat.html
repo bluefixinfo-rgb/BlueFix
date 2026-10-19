@@ -238,7 +238,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
     var w = el('div','bfc-row them');
     w.appendChild(el('div','bfc-who','BlueFix'));
-    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, meldet sich innerhalb von 24 Stunden ein Mitarbeiter bei dir.'));
+    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, nehme ich deinen Auftrag gleich hier auf. Danach meldet sich innerhalb von 24 Stunden ein Mitarbeiter bei dir.'));
     msgsEl.appendChild(w);
     var lastMe = -1;
     msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
