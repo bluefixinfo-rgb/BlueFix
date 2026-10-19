@@ -9,13 +9,14 @@
            ANTHROPIC_API_KEY      = (dein Anthropic API Key, console.anthropic.com)
            ONESIGNAL_REST_API_KEY = (derselbe wie bei chat-notify)
          optional: ANTHROPIC_MODEL (Standard: claude-haiku-5-5), SITE_URL
+      Test: Die Adresse  https://bluefix-website.vercel.app/api/chat-ai  im Browser oeffnen -> zeigt, ob Funktion + Keys da sind.
       3. Neu deployen.
 
     Sicherheit: Der Browser schickt nur die Chat-ID. Verlauf und Preise liest die Funktion selbst. */
 
 const PROJECT_ID = 'bluefix-2255';
 const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID || '640d8e83-51d5-45df-9225-07fb6ff37912';
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5';
+const MODELS = [process.env.ANTHROPIC_MODEL, 'claude-haiku-5-5', 'claude-haiku-4-5', 'claude-sonnet-4-5'].filter(Boolean).filter((m, i, a) => a.indexOf(m) === i);
 const SITE_URL = process.env.SITE_URL || 'https://bluefix-website.vercel.app/homepage.html';
 const DB = `projects/${PROJECT_ID}/databases/(default)/documents`;
 const FS = `https://firestore.googleapis.com/v1/${DB}`;
@@ -44,7 +45,7 @@ let priceCache = { at: 0, text: '' };
 async function getPriceText() {
   if (priceCache.text && Date.now() - priceCache.at < 10 * 60 * 1000) return priceCache.text;
   try {
-    const html = await (await fetch(SITE_URL)).text();
+    const html = await (await fetch(SITE_URL, { signal: AbortSignal.timeout(5000) })).text();
     const a = html.indexOf('const PRICES = ');
     const b = html.indexOf('const WASSER_PREIS', a);
     if (a < 0 || b < 0) throw new Error('PRICES nicht gefunden');
@@ -96,16 +97,19 @@ ANTWORTFORMAT: Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne Text davor o
 }
 
 /* ---------- Firestore (REST) ---------- */
+let lastFsStatus = 0;
 async function fsGet(path) {
-  const r = await fetch(`${FS}/${path}`);
-  if (!r.ok) return null;
+  const r = await fetch(`${FS}/${path}`, { signal: AbortSignal.timeout(8000) });
+  lastFsStatus = r.status;
+  if (!r.ok) { console.error('Firestore GET', r.status, await r.text().catch(() => '')); return null; }
   return (await r.json()).fields || {};
 }
 async function lastMessages(sid) {
   const r = await fetch(`${FS}/livechat_sessions/${sid}:runQuery`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'messages' }], orderBy: [{ field: { fieldPath: 'ts' }, direction: 'DESCENDING' }], limit: 14 } })
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'messages' }], orderBy: [{ field: { fieldPath: 'ts' }, direction: 'DESCENDING' }], limit: 14 } }),
+    signal: AbortSignal.timeout(8000)
   });
   if (!r.ok) return [];
   const rows = await r.json();
@@ -114,7 +118,7 @@ async function lastMessages(sid) {
     return { from: val(f.from), text: val(f.text) || '', ts: val(f.ts) || 0 };
   }).reverse();
 }
-function randomId() { return require('crypto').randomBytes(10).toString('hex'); }
+function randomId() { let s = ''; for (let i = 0; i < 20; i++) s += Math.floor(Math.random() * 16).toString(16); return s; }
 
 async function writeReply(sid, text, escalate, reason, prevCount) {
   const now = Date.now();
@@ -145,7 +149,8 @@ async function writeReply(sid, text, escalate, reason, prevCount) {
       updateTransforms: [{ fieldPath: 'unreadVisitor', increment: { integerValue: '1' } }]
     }
   ];
-  const r = await fetch(`${FS}:commit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ writes }) });
+  const r = await fetch(`${FS}:commit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ writes }), signal: AbortSignal.timeout(8000) });
+  if (!r.ok) console.error('Firestore commit', r.status, await r.text().catch(() => ''));
   return r.ok;
 }
 
@@ -158,7 +163,7 @@ async function pushTeam(apiKey, heading, content, sid) {
   const payload = { app_id: ONESIGNAL_APP_ID, headings: { en: heading }, contents: { en: content || 'Neue Anfrage' }, data: { type: 'livechat', sid } };
   if (ids.length) payload.include_subscription_ids = ids; else payload.included_segments = ['Total Subscriptions'];
   try {
-    await fetch('https://api.onesignal.com/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + apiKey }, body: JSON.stringify(payload) });
+    await fetch('https://api.onesignal.com/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + apiKey }, body: JSON.stringify(payload), signal: AbortSignal.timeout(6000) });
   } catch (e) {}
 }
 
@@ -178,6 +183,9 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, function: 'chat-ai', hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY, hasOneSignalKey: !!process.env.ONESIGNAL_REST_API_KEY, models: MODELS });
+  }
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   try {
@@ -187,12 +195,12 @@ module.exports = async (req, res) => {
     if (!/^[a-f0-9]{16,40}$/.test(sid)) return res.status(400).json({ error: 'bad sid' });
 
     const f = await fsGet(`livechat_sessions/${sid}`);
-    if (!f) return res.status(404).json({ error: 'chat not found' });
+    if (!f) return res.status(404).json({ ok: false, error: 'chat not found', firestoreStatus: lastFsStatus });
 
     const lastAt = val(f.lastMessageAt) || 0;
     const aiCount = val(f.aiCount) || 0;
     // Nur auf frische Besucher-Nachrichten antworten, nie wenn ein Mensch übernommen hat, nie doppelt
-    if (val(f.lastFrom) !== 'visitor' || Date.now() - lastAt > 120000) return res.status(200).json({ skipped: 'not needed' });
+    if (val(f.lastFrom) !== 'visitor' || Date.now() - lastAt > 600000) return res.status(200).json({ skipped: 'not needed' });
     if (humanActive(f)) return res.status(200).json({ skipped: 'human took over' });
     if ((val(f.aiHandledAt) || 0) >= lastAt) return res.status(200).json({ skipped: 'already answered' });
     if (aiCount >= MAX_AI_REPLIES_PER_CHAT) return res.status(200).json({ skipped: 'limit' });
@@ -220,14 +228,34 @@ module.exports = async (req, res) => {
 
       try {
         const priceText = await getPriceText();
-        const aRes = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: MODEL, max_tokens: 500, system: systemPrompt(priceText, val(f.needsHuman) === true), messages: msgs })
-        });
-        if (!aRes.ok) throw new Error('Anthropic ' + aRes.status);
-        const data = await aRes.json();
-        const txt = (data.content || []).map((c) => (c.type === 'text' ? c.text : '')).join('');
+        const system = systemPrompt(priceText, val(f.needsHuman) === true);
+        let lastErr = '';
+        let txt = null;
+        for (const model of MODELS) {
+          try {
+            const aRes = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+              body: JSON.stringify({ model, max_tokens: 500, system, messages: msgs }),
+              signal: AbortSignal.timeout(20000)
+            });
+            if (!aRes.ok) {
+              const t = await aRes.text().catch(() => '');
+              console.error('Anthropic', model, aRes.status, t);
+              lastErr = 'Anthropic ' + aRes.status + ' (' + model + ')';
+              // Key falsch / Limit erreicht -> anderes Modell hilft nicht
+              if (aRes.status === 401 || aRes.status === 403 || aRes.status === 429) break;
+              continue;
+            }
+            const data = await aRes.json();
+            txt = (data.content || []).map((c) => (c.type === 'text' ? c.text : '')).join('');
+            break;
+          } catch (e) {
+            lastErr = String(e.message || e).slice(0, 80);
+            console.error('Anthropic fetch', model, lastErr);
+          }
+        }
+        if (txt == null) throw new Error(lastErr || 'keine Antwort');
         result = parseAi(txt);
       } catch (e) {
         result = { reply: FALLBACK, escalate: true, reason: 'KI-Fehler: ' + String(e.message || e).slice(0, 80) };
@@ -242,8 +270,9 @@ module.exports = async (req, res) => {
     if (result.escalate && osKey) {
       await pushTeam(osKey, `🙋 Mitarbeiter gefragt: ${name}${short ? ' #' + short : ''}`, result.reason || 'Kunde braucht einen Mitarbeiter', sid);
     }
-    return res.status(ok ? 200 : 502).json({ ok, escalate: result.escalate });
+    return res.status(ok ? 200 : 502).json({ ok, escalate: result.escalate, error: ok ? undefined : 'Firestore write failed' });
   } catch (e) {
-    return res.status(500).json({ error: String(e && e.message || e) });
+    console.error('chat-ai', e);
+    return res.status(500).json({ ok: false, error: String(e && e.message || e) });
   }
 };
