@@ -78,6 +78,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .bfc-send:disabled{opacity:.4; cursor:default;}
 .bfc-send svg{width:20px; height:20px;}
 
+/* BlueFix eigene Bildschirmtastatur */
+.bf-keyboard{display:none;flex:none;padding:8px 10px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(155deg,#071a31,#040b17 72%);border-top:1px solid #124b86;box-shadow:0 -8px 28px rgba(0,95,210,.12);user-select:none;-webkit-user-select:none;}
+.bf-kb-brand{display:flex;align-items:center;gap:8px;margin-bottom:8px}.bf-kb-logo{width:38px;height:38px;border-radius:13px;border:1px solid #1767b8;background:linear-gradient(135deg,#0b2a50,#061326);color:#65b6ff;font:700 20px 'Space Grotesk',sans-serif;display:grid;place-items:center}.bf-kb-tools{display:flex;gap:6px;flex:1}.bf-kb-tool{height:36px;min-width:38px;padding:0 10px;border-radius:18px;border:1px solid #12365b;background:#07172b;color:#dcecff;font-size:17px}.bf-kb-branding{margin-left:auto;border:1px solid #14528b;border-radius:20px;padding:7px 12px;color:#55aaff;font:700 14px 'Space Grotesk',sans-serif;white-space:nowrap}
+.bf-kb-suggestions{display:grid;grid-template-columns:repeat(3,1fr);margin:0 0 8px;padding:7px 0;border:1px solid #10365e;border-radius:24px;background:#06162a;text-align:center;color:#e5efff;font-size:14px}.bf-kb-suggestions button{background:transparent;border:0;border-right:1px solid #16324f;color:inherit;font:inherit;min-width:0;padding:3px}.bf-kb-suggestions button:last-child{border-right:0}.bf-kb-row{display:flex;justify-content:center;gap:4px;margin:0 0 7px}.bf-key{flex:1;min-width:0;height:42px;padding:0 2px;border-radius:10px;border:1px solid #123e6b;background:linear-gradient(180deg,#0d2c50,#071a32);box-shadow:0 3px 0 #030c18,inset 0 1px 0 #2574b955;color:#f4f8ff;font-size:18px;font-weight:500;touch-action:manipulation}.bf-key:active,.bf-kb-tool:active{background:#1457a0}.bf-key.wide{flex:1.45;font-size:14px}.bf-key.shift{color:#65b6ff}.bf-key.space{flex:4;font-size:13px;color:#bcdcff}.bf-key.return{flex:1.5;background:linear-gradient(135deg,#1687ff,#0757c9);border-color:#2698ff;font-size:21px}.bf-kb-foot{display:flex;justify-content:space-between;align-items:center;padding:2px 8px 0;color:#8cbce9;font-size:11px}.bf-kb-foot button{border:0;background:transparent;color:#cfe6ff;font-size:22px;padding:4px 8px}
+@media(max-width:639px){.bf-keyboard.visible{display:block}.bfc-in{padding-bottom:8px}.bfc-in textarea{min-height:46px}.bfc-win{justify-content:flex-start}}@media(min-width:640px){.bf-keyboard{display:none!important}}
+
 .bfc-typing .bfc-b{display:flex; gap:5px; align-items:center; padding:13px 16px;}
 .bfc-typing i{width:7px; height:7px; border-radius:50%; background:#8a99b8; animation:bfDot 1.2s infinite ease-in-out;}
 .bfc-typing i:nth-child(2){animation-delay:.18s;} .bfc-typing i:nth-child(3){animation-delay:.36s;}
@@ -114,8 +120,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <div class="bfc-msgs" id="bfcMsgs" aria-live="polite"></div>
       <div class="bfc-err" id="bfcErr" role="alert"></div>
       <div class="bfc-in">
-        <textarea id="bfcIn" rows="1" maxlength="1000" placeholder="Nachricht schreiben …" aria-label="Nachricht" enterkeyhint="send"></textarea>
+        <textarea id="bfcIn" rows="1" maxlength="1000" readonly inputmode="none" placeholder="Nachricht schreiben …" aria-label="Nachricht" enterkeyhint="send"></textarea>
         <button class="bfc-send" id="bfcSend" type="button" aria-label="Senden" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
+      <div class="bf-keyboard" id="bfKeyboard" aria-label="BlueFix Tastatur">
+        <div class="bf-kb-brand"><div class="bf-kb-logo">B</div><div class="bf-kb-tools"><button class="bf-kb-tool" type="button" data-kb="emoji">☺</button><button class="bf-kb-tool" type="button" data-kb="clear">⌫</button><button class="bf-kb-tool" type="button" data-kb="hide">⌄</button></div><div class="bf-kb-branding">◈ BlueFix</div></div>
+        <div class="bf-kb-suggestions"><button type="button" data-suggest="Ich">Ich</button><button type="button" data-suggest="Hallo">Hallo</button><button type="button" data-suggest="Ja">Ja</button></div>
+        <div class="bf-kb-row"><button class="bf-key">Q</button><button class="bf-key">W</button><button class="bf-key">E</button><button class="bf-key">R</button><button class="bf-key">T</button><button class="bf-key">Z</button><button class="bf-key">U</button><button class="bf-key">I</button><button class="bf-key">O</button><button class="bf-key">P</button><button class="bf-key">Ü</button></div>
+        <div class="bf-kb-row"><button class="bf-key">A</button><button class="bf-key">S</button><button class="bf-key">D</button><button class="bf-key">F</button><button class="bf-key">G</button><button class="bf-key">H</button><button class="bf-key">J</button><button class="bf-key">K</button><button class="bf-key">L</button><button class="bf-key">Ö</button><button class="bf-key">Ä</button></div>
+        <div class="bf-kb-row"><button class="bf-key wide shift" data-kb="shift">⇧</button><button class="bf-key">Y</button><button class="bf-key">X</button><button class="bf-key">C</button><button class="bf-key">V</button><button class="bf-key">B</button><button class="bf-key">N</button><button class="bf-key">M</button><button class="bf-key wide" data-kb="backspace">⌫</button></div>
+        <div class="bf-kb-row"><button class="bf-key wide" data-kb="numbers">123</button><button class="bf-key space" data-kb="space">BlueFix · Leerzeichen</button><button class="bf-key return" data-kb="enter">↑</button></div>
+        <div class="bf-kb-foot"><button type="button" data-kb="emoji">☻</button><span>Smartphones. Schnell. Zuverlässig.</span><button type="button" data-kb="hide">⌄</button></div>
       </div>
     </div>
   </div>
@@ -155,6 +170,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
   var sessSeen=false, msgs=[], sess={}, lastSend=0, aiWaitUntil=0, aiTimer=null, aiFailAfter=0;
   var sending=false;
+  var keyboard = $('bfKeyboard'), shiftOn = false, numberMode = false;
 
   var LETTER; try { LETTER = new RegExp('\\p{L}','u'); } catch(e){ LETTER = /[A-Za-zÀ-ɏ]/; }
   function cleanName(v){ return String(v || '').replace(/\s+/g,' ').trim().slice(0,40); }
@@ -383,6 +399,21 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(hover: hover)').matches) { e.preventDefault(); send(); }
   });
   document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') markSeen(); });
+
+  /* Eigene BlueFix-Tastatur */
+  function showKeyboard(){if(!isMobileLayout()||chatView.hidden)return;keyboard.classList.add('visible');fit();}
+  function hideKeyboard(){keyboard.classList.remove('visible');fit();}
+  function insertText(t){var a=inp.value.length,b=a;inp.value=inp.value.slice(0,a)+t+inp.value.slice(b);autosize();updateSend();}
+  function backspace(){inp.value=inp.value.slice(0,-1);autosize();updateSend();}
+  keyboard.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+    if(b.hasAttribute('data-suggest')){insertText(b.getAttribute('data-suggest')+' ');return;}
+    var act=b.getAttribute('data-kb');if(act==='hide'){hideKeyboard();return;}if(act==='shift'){shiftOn=!shiftOn;b.classList.toggle('shift',shiftOn);return;}
+    if(act==='backspace'){backspace();return;}if(act==='clear'){inp.value='';autosize();updateSend();return;}if(act==='space'){insertText(' ');return;}if(act==='enter'){if(inp.value.trim())send();return;}if(act==='emoji'){insertText('😊');return;}
+    if(act==='numbers'){numberMode=!numberMode;var keys=keyboard.querySelectorAll('.bf-kb-row .bf-key:not([data-kb])'),letters='QWERTZUIOPÜASDFGHJKLÖÄYXCVBNM',digits='1234567890@#$%&-*+()';keys.forEach(function(k,i){k.textContent=numberMode?(digits[i]||'.'):(letters[i]||k.textContent);});b.textContent=numberMode?'ABC':'123';return;}
+    var key=b.textContent.trim();if(key.length===1){insertText(shiftOn?key:key.toLowerCase());if(shiftOn){shiftOn=false;keyboard.querySelector('[data-kb="shift"]').classList.remove('shift');}}
+  });
+  inp.addEventListener('click',showKeyboard);inp.addEventListener('focus',function(){if(isMobileLayout())showKeyboard();});
+  document.addEventListener('pointerdown',function(e){if(!keyboard.contains(e.target)&&e.target!==inp&&e.target!==sendBtn)hideKeyboard();});
 
   /* Start */
   showView(); render(); updateSend();
