@@ -1222,20 +1222,56 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 #bfChatBtn:active{transform:scale(.94);}
 #bfChatBtn svg{width:28px; height:28px;}
 #bfChatBadge{position:absolute; top:-4px; right:-4px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#e34848; color:#fff; font:700 12px/22px 'Inter',sans-serif; text-align:center; display:none; box-shadow:0 0 0 2px #04070d;}
-#bfChat{position:fixed; z-index:95; display:none; flex-direction:column; background:#070d18; color:#f5f8ff; font-family:'Inter',sans-serif; overflow:hidden; inset:0; height:100dvh;}
-#bfChat.open{display:flex; animation:bfUp .28s cubic-bezier(.22,1,.36,1);}
-@keyframes bfUp{from{opacity:0; transform:translateY(18px);}to{opacity:1; transform:none;}}
+
+/* Eigenes Chat-Fenster: Overlay + Fenster */
+#bfChat{position:fixed; inset:0; z-index:95; display:none; align-items:center; justify-content:center; background:rgba(3,6,12,.72); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); color:#f5f8ff; font-family:'Inter',sans-serif; overscroll-behavior:contain;}
+#bfChat.open{display:flex; animation:bfFade .2s ease;}
+.bfc-win{position:relative; display:flex; flex-direction:column; width:100%; height:100%; min-height:0; background:#070d18; overflow:hidden; animation:bfUp .28s cubic-bezier(.22,1,.36,1);}
 @media (min-width:640px){
-  #bfChat{inset:auto 18px 18px auto; width:390px; height:590px; max-height:calc(100dvh - 36px); border-radius:20px; border:1px solid #1c2b45; box-shadow:0 24px 60px rgba(0,0,0,.6);}
+  .bfc-win{width:440px; height:680px; max-height:calc(100% - 48px); border-radius:20px; border:1px solid #1c2b45; box-shadow:0 30px 80px rgba(0,0,0,.65);}
 }
-.bfc-head{display:flex; align-items:center; gap:12px; padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px; background:linear-gradient(135deg,#0d2547,#0a1a33); border-bottom:1px solid #1c2b45;}
-@media (min-width:640px){.bfc-head{padding-top:12px;}}
-.bfc-av{width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#4a9cff,#1e6fef); display:flex; align-items:center; justify-content:center; font:700 18px 'Space Grotesk',sans-serif; flex:none;}
+@keyframes bfFade{from{opacity:0;}to{opacity:1;}}
+@keyframes bfUp{from{opacity:0; transform:translateY(18px);}to{opacity:1; transform:none;}}
+#bfChat [hidden]{display:none !important;}
+#bfChat button:focus-visible,#bfChat input:focus-visible,#bfChat textarea:focus-visible{outline:2px solid #4a9cff; outline-offset:2px;}
+
+/* Kopfzeile */
+.bfc-head{flex:none; display:flex; align-items:center; gap:12px; padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px 16px; background:linear-gradient(135deg,#0d2547,#0a1a33); border-bottom:1px solid #1c2b45;}
+@media (min-width:640px){.bfc-head{padding-top:14px;}}
+.bfc-av{position:relative; width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#4a9cff,#1e6fef); display:flex; align-items:center; justify-content:center; font:700 18px 'Space Grotesk',sans-serif; flex:none;}
+.bfc-av::after{content:""; position:absolute; right:-1px; bottom:-1px; width:12px; height:12px; border-radius:50%; background:#2fbf71; border:2px solid #0a1a33;}
 .bfc-ti{flex:1; min-width:0;}
 .bfc-ti b{display:block; font:600 16px 'Space Grotesk',sans-serif;}
 .bfc-ti span{display:block; font-size:12px; color:#8a99b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.bfc-x{background:none; border:none; color:#c9d6f0; font-size:30px; line-height:1; cursor:pointer; padding:0 6px;}
-.bfc-msgs{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 12px; display:flex; flex-direction:column; gap:8px; background:#0b1322;}
+.bfc-x{flex:none; width:40px; height:40px; border-radius:50%; border:1px solid #1c2b45; background:rgba(255,255,255,.04); color:#c9d6f0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s, color .15s; -webkit-tap-highlight-color:transparent;}
+.bfc-x:hover{background:rgba(255,255,255,.12); color:#fff;}
+.bfc-x svg{width:18px; height:18px;}
+#bfChat.compact .bfc-head{padding-top:8px; padding-bottom:8px;}
+#bfChat.compact .bfc-av{width:32px; height:32px; font-size:15px;}
+#bfChat.compact .bfc-ti span{display:none;}
+
+/* Bereiche (Name-Abfrage / Chat) */
+.bfc-view{flex:1; min-height:0; display:flex; flex-direction:column;}
+
+/* Name zuerst */
+.bfc-gate{background:#0b1322; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:24px 26px calc(24px + env(safe-area-inset-bottom,0px));}
+.bfc-gate-in{margin:auto; width:100%; max-width:320px; text-align:center;}
+.bfc-gate-ico{width:56px; height:56px; margin:0 auto 18px; border-radius:16px; background:rgba(30,111,239,.14); border:1px solid #1a3a63; color:#4a9cff; display:flex; align-items:center; justify-content:center;}
+.bfc-gate-ico svg{width:26px; height:26px;}
+.bfc-gate h2{margin:0 0 8px; font:600 22px 'Space Grotesk',sans-serif; letter-spacing:.2px;}
+.bfc-gate p{margin:0 0 22px; font-size:14.5px; line-height:1.5; color:#8a99b8;}
+.bfc-gate form{display:flex; flex-direction:column; gap:8px; text-align:left;}
+.bfc-gate label{font-size:13px; font-weight:500; color:#c9d6f0;}
+.bfc-gate input{width:100%; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:12px; padding:13px 15px; font:16px 'Inter',sans-serif; transition:border-color .15s, box-shadow .15s;}
+.bfc-gate input:focus{outline:none; border-color:#4a9cff; box-shadow:0 0 0 3px rgba(74,156,255,.18);}
+.bfc-gate-err{min-height:18px; font-size:12.5px; color:#ff9a9a;}
+.bfc-go{width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; font:600 15px 'Inter',sans-serif; cursor:pointer; box-shadow:0 8px 22px -8px rgba(30,111,239,.7); transition:transform .15s, filter .15s;}
+.bfc-go:hover{filter:brightness(1.08);}
+.bfc-go:active{transform:scale(.98);}
+.bfc-note{margin-top:16px; font-size:12px; line-height:1.45; color:#6d7d9c;}
+
+/* Nachrichten */
+.bfc-msgs{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:14px 12px; display:flex; flex-direction:column; gap:8px; background:#0b1322;}
 .bfc-sys{align-self:center; font-size:12px; color:#8a99b8; padding:4px 0;}
 .bfc-row{display:flex; flex-direction:column; max-width:82%;}
 .bfc-row.me{align-self:flex-end; align-items:flex-end;}
@@ -1245,32 +1281,20 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 .bfc-row.me .bfc-b{background:linear-gradient(135deg,#2f7ce0,#14488f); color:#fff; border-bottom-right-radius:5px;}
 .bfc-row.them .bfc-b{background:#f5f8ff; color:#0b1322; border-bottom-left-radius:5px;}
 .bfc-meta{font-size:11px; color:#8a99b8; margin:3px 4px 0;}
-.bfc-name{display:none; padding:8px 12px 0; background:#070d18;}
-.bfc-name.show{display:block;}
-.bfc-name input{width:100%; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:12px; padding:10px 14px; font:16px 'Inter',sans-serif;}
-.bfc-in{display:flex; gap:8px; align-items:flex-end; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); background:#070d18; border-top:1px solid #1c2b45;}
-.bfc-in textarea{flex:1; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:18px; padding:11px 15px; font:16px 'Inter',sans-serif; resize:none; max-height:110px; line-height:1.35;}
-.bfc-in textarea:focus,.bfc-name input:focus{outline:none; border-color:#4a9cff;}
-.bfc-send{width:44px; height:44px; border-radius:50%; border:none; background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center;}
-.bfc-send:disabled{opacity:.5;}
+.bfc-err{flex:none; display:none; color:#ff9a9a; font-size:12.5px; text-align:center; padding:6px 12px; background:#070d18;}
+
+/* Eingabe: bleibt immer fest am unteren Rand des Fensters */
+.bfc-in{flex:none; display:flex; gap:8px; align-items:flex-end; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); background:#070d18; border-top:1px solid #1c2b45;}
+.bfc-in textarea{flex:1; min-width:0; min-height:44px; max-height:110px; box-sizing:border-box; margin:0; display:block; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:22px; padding:11px 16px; font:16px/1.35 'Inter',sans-serif; resize:none; overflow-y:hidden; transition:border-color .15s, box-shadow .15s;}
+.bfc-in textarea:focus{outline:none; border-color:#4a9cff; box-shadow:0 0 0 3px rgba(74,156,255,.18);}
+.bfc-send{width:44px; height:44px; border-radius:50%; border:none; background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center; transition:opacity .15s; -webkit-tap-highlight-color:transparent;}
+.bfc-send:disabled{opacity:.4; cursor:default;}
 .bfc-send svg{width:20px; height:20px;}
+
 .bfc-typing .bfc-b{display:flex; gap:5px; align-items:center; padding:13px 16px;}
 .bfc-typing i{width:7px; height:7px; border-radius:50%; background:#8a99b8; animation:bfDot 1.2s infinite ease-in-out;}
 .bfc-typing i:nth-child(2){animation-delay:.18s;} .bfc-typing i:nth-child(3){animation-delay:.36s;}
 @keyframes bfDot{0%,80%,100%{opacity:.25; transform:translateY(0);}40%{opacity:1; transform:translateY(-3px);}}
-#bfChat.kb .bfc-head{padding:8px 12px; gap:10px;}
-#bfChat.kb .bfc-av{width:30px; height:30px; font-size:14px;}
-#bfChat.kb .bfc-ti b{font-size:14.5px;}
-#bfChat.kb .bfc-ti span{display:none;}
-#bfChat.kb .bfc-x{font-size:26px;}
-#bfChat.kb .bfc-msgs{padding:8px 10px; gap:6px;}
-#bfChat.kb .bfc-sys{display:none;}
-#bfChat.kb .bfc-b{font-size:14.5px; padding:8px 12px;}
-#bfChat.kb .bfc-in{padding:8px 10px 8px;}
-#bfChat.kb .bfc-send{width:40px; height:40px;}
-.bfc-in textarea{transition:border-color .15s, box-shadow .15s;}
-.bfc-in textarea:focus{box-shadow:0 0 0 3px rgba(74,156,255,.18);}
-.bfc-err{color:#ff9a9a; font-size:12.5px; text-align:center; padding:6px 12px; background:#070d18; display:none;}
 </style>
 
 <button id="bfChatBtn" type="button" aria-label="Chat mit BlueFix öffnen">
@@ -1278,18 +1302,39 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   <span id="bfChatBadge">0</span>
 </button>
 
-<div id="bfChat" role="dialog" aria-label="Chat mit BlueFix">
-  <div class="bfc-head">
-    <div class="bfc-av">B</div>
-    <div class="bfc-ti"><b>BlueFix Assistent</b><span>KI-Assistent · bei Bedarf meldet sich unser Team</span></div>
-    <button class="bfc-x" id="bfChatClose" type="button" aria-label="Chat schliessen">×</button>
-  </div>
-  <div class="bfc-msgs" id="bfcMsgs"></div>
-  <div class="bfc-err" id="bfcErr"></div>
-  <div class="bfc-name" id="bfcName"><input id="bfcNameIn" type="text" maxlength="40" placeholder="Dein Name (optional)" autocomplete="given-name"></div>
-  <div class="bfc-in">
-    <textarea id="bfcIn" rows="1" maxlength="1000" placeholder="Nachricht schreiben …"></textarea>
-    <button class="bfc-send" id="bfcSend" type="button" aria-label="Senden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+<div id="bfChat">
+  <div class="bfc-win" id="bfcWin" role="dialog" aria-modal="true" aria-labelledby="bfcTitle">
+    <div class="bfc-head">
+      <div class="bfc-av">B</div>
+      <div class="bfc-ti"><b id="bfcTitle">BlueFix Assistent</b><span id="bfcSub">Online · bei Bedarf meldet sich unser Team</span></div>
+      <button class="bfc-x" id="bfChatClose" type="button" aria-label="Chat schliessen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+
+    <!-- Schritt 1: Name -->
+    <div class="bfc-view bfc-gate" id="bfcGate">
+      <div class="bfc-gate-in">
+        <div class="bfc-gate-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <h2>Willkommen bei BlueFix</h2>
+        <p>Wie dürfen wir dich nennen? Danach startet dein Chat.</p>
+        <form id="bfcGateForm" novalidate>
+          <label for="bfcNameIn">Dein Name</label>
+          <input id="bfcNameIn" type="text" maxlength="40" placeholder="z. B. Lena" autocomplete="given-name" autocapitalize="words" enterkeyhint="go">
+          <div class="bfc-gate-err" id="bfcGateErr" role="alert"></div>
+          <button class="bfc-go" type="submit">Chat starten</button>
+        </form>
+        <div class="bfc-note">Dein Name wird nur für die Anrede im Chat und für unser Team verwendet.</div>
+      </div>
+    </div>
+
+    <!-- Schritt 2: Chat -->
+    <div class="bfc-view" id="bfcChatView" hidden>
+      <div class="bfc-msgs" id="bfcMsgs" aria-live="polite"></div>
+      <div class="bfc-err" id="bfcErr" role="alert"></div>
+      <div class="bfc-in">
+        <textarea id="bfcIn" rows="1" maxlength="1000" placeholder="Nachricht schreiben …" aria-label="Nachricht" enterkeyhint="send"></textarea>
+        <button class="bfc-send" id="bfcSend" type="button" aria-label="Senden" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1322,11 +1367,17 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   var short = sid.slice(0,4).toUpperCase();
 
   var $ = function(id){ return document.getElementById(id); };
-  var btn=$('bfChatBtn'), badge=$('bfChatBadge'), box=$('bfChat'), msgsEl=$('bfcMsgs'), inp=$('bfcIn'),
-      sendBtn=$('bfcSend'), nameWrap=$('bfcName'), nameIn=$('bfcNameIn'), errEl=$('bfcErr');
+  var btn=$('bfChatBtn'), badge=$('bfChatBadge'), box=$('bfChat'), win=$('bfcWin'), msgsEl=$('bfcMsgs'), inp=$('bfcIn'),
+      sendBtn=$('bfcSend'), errEl=$('bfcErr'), closeBtn=$('bfChatClose'), subEl=$('bfcSub'),
+      gate=$('bfcGate'), chatView=$('bfcChatView'), gateForm=$('bfcGateForm'), nameIn=$('bfcNameIn'), gateErr=$('bfcGateErr');
 
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
   var sessSeen=false, msgs=[], sess={}, isOpen=false, lastSend=0, aiWaitUntil=0, aiTimer=null, scrollYSaved=0;
+  var sending=false, locked=false, lockedFixed=false, lastFocus=null, downOnBackdrop=false;
+
+  var LETTER; try { LETTER = new RegExp('\\p{L}','u'); } catch(e){ LETTER = /[A-Za-z\u00C0-\u024F]/; }
+  function cleanName(v){ return String(v || '').replace(/\s+/g,' ').trim().slice(0,40); }
+  function getName(){ return cleanName(lsGet('bf_chat_name')); }
 
   function loadScript(src){
     return new Promise(function(res,rej){
@@ -1355,7 +1406,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     if (unsubSess) unsubSess();
     if (unsubMsgs) unsubMsgs();
     unsubSess = sRef.onSnapshot(function(d){
-      /* Admin hat den Chat geloescht -> hier komplett neu starten (leerer Chat, neue Chat-ID) */
+      /* Admin hat den Chat geloescht -> hier komplett neu starten (leerer Chat, neue Chat-ID, Name wird neu abgefragt) */
       if (!d.metadata.fromCache && !d.metadata.hasPendingWrites) {
         if (d.exists) sessSeen = true;
         else if (sessSeen || lsGet('bf_chat_started')) { resetChat(); return; }
@@ -1379,8 +1430,8 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     sid = newSid(); lsSet('bf_chat_sid', sid); short = sid.slice(0,4).toUpperCase();
     sRef = db.collection('livechat_sessions').doc(sid);
     msgs = []; sess = {}; sessSeen = false; aiWaitUntil = 0; clearTimeout(aiTimer);
-    inp.value = ''; inp.style.height = 'auto'; nameIn.value = ''; showErr('');
-    updateBadge(); render();
+    inp.value = ''; autosize(); nameIn.value = ''; gateErr.textContent = ''; showErr('');
+    showView(); updateBadge(); render(); updateSend();
     listen();
   }
 
@@ -1398,14 +1449,22 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   function hm(ts){ var d=new Date(ts); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
   function el(tag, cls, txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
 
+  /* Zeigt entweder die Name-Abfrage oder den Chat */
+  function showView(){
+    var name = getName();
+    gate.hidden = !!name;
+    chatView.hidden = !name;
+    subEl.textContent = name ? 'Du schreibst als ' + name : 'Online · bei Bedarf meldet sich unser Team';
+  }
+
   function render(){
-    if (!isOpen) return;
+    if (!isOpen || !getName()) return;
     var nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 120;
     msgsEl.innerHTML = '';
     msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
     var w = el('div','bfc-row them');
     w.appendChild(el('div','bfc-who','BlueFix'));
-    w.appendChild(el('div','bfc-b','Hallo! 👋 Ich bin der KI-Assistent von BlueFix. Ich beantworte dir gern Fragen, z.B. zu Preisen, Garantie oder Ablauf. Geht es um eine Reparatur oder ein Problem, gebe ich es an unser Team weiter – ein Mitarbeiter meldet sich dann bei dir.'));
+    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Ich beantworte dir gern Fragen, z.B. zu Preisen, Garantie oder Ablauf. Geht es um eine Reparatur oder ein Problem, gebe ich es an unser Team weiter – ein Mitarbeiter meldet sich dann bei dir.'));
     msgsEl.appendChild(w);
     var lastMe = -1;
     msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
@@ -1427,33 +1486,41 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       clearTimeout(aiTimer); aiTimer = setTimeout(render, Math.max(200, aiWaitUntil - Date.now() + 50));
     }
     if (nearBottom || msgs.length <= 1) msgsEl.scrollTop = msgsEl.scrollHeight;
-    nameWrap.classList.toggle('show', !msgs.length && !lsGet('bf_chat_name'));
   }
 
   function showErr(t){ errEl.textContent = t || ''; errEl.style.display = t ? 'block' : 'none'; }
 
+  /* Textfeld waechst mit, bis max. 110px; danach scrollt es innen */
+  function autosize(){
+    inp.style.height = 'auto';
+    var h = Math.min(inp.scrollHeight + 2, 110);
+    inp.style.height = h + 'px';
+    inp.style.overflowY = inp.scrollHeight + 2 > 110 ? 'auto' : 'hidden';
+  }
+  function updateSend(){ sendBtn.disabled = sending || !inp.value.trim(); }
+
   async function send(){
     var text = inp.value.trim().slice(0,1000);
-    if (!text || Date.now() - lastSend < 700) return;
+    var name = getName();
+    if (!name) { showView(); return; }
+    if (!text || sending || Date.now() - lastSend < 700) return;
     lastSend = Date.now();
-    sendBtn.disabled = true; showErr('');
+    sending = true; updateSend(); showErr('');
     try {
       await init();
-      var name = (nameIn.value || lsGet('bf_chat_name') || '').trim().slice(0,40);
-      if (nameIn.value.trim()) lsSet('bf_chat_name', name);
       var started = parseInt(lsGet('bf_chat_started') || '0', 10);
       if (!started) { started = Date.now(); lsSet('bf_chat_started', String(started)); }
       var now = Date.now();
       var batch = db.batch();
       batch.set(sRef, {
-        name: name || 'Besucher', short: short, createdAt: started,
+        name: name, short: short, createdAt: started,
         lastMessageAt: now, lastText: text.slice(0,140), lastFrom: 'visitor', lastEventAt: now, lastEventKind: 'msg',
         unreadTeam: firebase.firestore.FieldValue.increment(1),
         page: (location.pathname || '/').slice(0,80)
       }, { merge:true });
       batch.set(sRef.collection('messages').doc(), { from:'visitor', text: text, ts: now });
       await batch.commit();
-      inp.value = ''; inp.style.height = 'auto';
+      inp.value = ''; autosize();
       try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }), keepalive:true }).catch(function(){}); } catch(e){}
       /* KI antwortet zuerst. Während sie schreibt, zeigen wir "tippt …". */
       aiWaitUntil = Date.now() + 25000; render();
@@ -1469,41 +1536,48 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       if (isMobileLayout()) { try { inp.focus(); } catch(e){} }
     } catch(e) {
       showErr('Nachricht konnte nicht gesendet werden. Bitte Internetverbindung prüfen – oder ruf uns direkt an.');
-    } finally { sendBtn.disabled = false; }
+    } finally { sending = false; updateSend(); }
   }
 
-  /* ---- Handy-Tastatur: Chat passt sich dem sichtbaren Bereich an, der ganze Chat bleibt sichtbar ---- */
+  /* ---- Fenstergroesse: folgt dem sichtbaren Bereich (Handy-Tastatur), Eingabe bleibt immer sichtbar ---- */
   var vv = window.visualViewport;
   function isMobileLayout(){ return window.innerWidth < 640; }
-  function fitChat(){
-    if (!isOpen || !isMobileLayout()) { box.style.top=''; box.style.height=''; box.style.bottom=''; return; }
-    var h = vv ? vv.height : window.innerHeight, top = vv ? vv.offsetTop : 0;
-    box.style.bottom = 'auto'; box.style.top = top + 'px'; box.style.height = h + 'px';
-    if (window.scrollY) window.scrollTo(0, 0);
+  function fit(){
+    if (!isOpen) return;
+    var h = vv ? vv.height : window.innerHeight;
+    if (isMobileLayout()) {
+      box.style.bottom = 'auto'; box.style.top = (vv ? vv.offsetTop : 0) + 'px'; box.style.height = h + 'px';
+      if (window.scrollY) window.scrollTo(0, 0);
+    } else {
+      box.style.top = ''; box.style.bottom = ''; box.style.height = '';
+    }
+    box.classList.toggle('compact', h < 480);
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
+  function scrollNow(y){
+    try { window.scrollTo({ top:y, left:0, behavior:'instant' }); } catch(e){ window.scrollTo(0, y); }
+  }
+  /* Seite hinter dem Fenster einfrieren (ohne dass sie beim Schliessen nach oben springt) */
   function lockPage(on){
     var b = document.body, de = document.documentElement;
-    if (on && isMobileLayout()) {
-      scrollYSaved = window.pageYOffset || 0;
+    if (on && !locked) {
+      locked = true; scrollYSaved = window.pageYOffset || 0;
       de.style.overflow = 'hidden';
-      b.style.position = 'fixed'; b.style.top = (-scrollYSaved) + 'px'; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%';
-    } else {
-      de.style.overflow = '';
-      if (b.style.position === 'fixed') {
+      if (isMobileLayout()) {
+        lockedFixed = true;
+        b.style.position = 'fixed'; b.style.top = (-scrollYSaved) + 'px'; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%';
+      }
+    } else if (!on && locked) {
+      locked = false; de.style.overflow = '';
+      if (lockedFixed) {
+        lockedFixed = false;
         b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; b.style.width = '';
-        window.scrollTo(0, scrollYSaved);
+        scrollNow(scrollYSaved);
       }
     }
   }
-  if (vv) { vv.addEventListener('resize', fitChat); vv.addEventListener('scroll', fitChat); }
-  window.addEventListener('resize', fitChat);
-  var kbTimer = null;
-  function setKb(on){ clearTimeout(kbTimer); box.classList.toggle('kb', !!on && isMobileLayout()); setTimeout(fitChat, 30); }
-  function onFocusIn(){ setKb(true); setTimeout(fitChat, 50); setTimeout(fitChat, 300); }
-  function onFocusOut(){ clearTimeout(kbTimer); kbTimer = setTimeout(function(){ var ae = document.activeElement; if (ae !== inp && ae !== nameIn) setKb(false); }, 200); }
-  inp.addEventListener('focus', onFocusIn); nameIn.addEventListener('focus', onFocusIn);
-  inp.addEventListener('blur', onFocusOut); nameIn.addEventListener('blur', onFocusOut);
+  if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+  window.addEventListener('resize', fit);
   /* Senden-Button nimmt der Eingabe den Fokus nicht weg -> Tastatur bleibt offen */
   sendBtn.addEventListener('mousedown', function(e){ e.preventDefault(); });
 
@@ -1512,31 +1586,71 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     var last = parseInt(lsGet('bf_chat_open_ping') || '0', 10), now = Date.now();
     if (now - last < 30*60*1000) return;
     lsSet('bf_chat_open_ping', String(now));
-    sRef.set({ lastEventAt: now, lastEventKind: 'open', openedAt: now, name: (lsGet('bf_chat_name') || 'Besucher'), short: short, page: (location.pathname || '/').slice(0,80) }, { merge:true })
+    sRef.set({ lastEventAt: now, lastEventKind: 'open', openedAt: now, name: (getName() || 'Besucher'), short: short, page: (location.pathname || '/').slice(0,80) }, { merge:true })
       .then(function(){
         try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid, event: 'open' }), keepalive:true }).catch(function(){}); } catch(e){}
       }).catch(function(){});
   }
 
   function open(){
-    isOpen = true; box.classList.add('open'); btn.style.display = 'none';
-    lockPage(true); fitChat();
-    updateBadge(); render();
-    init().then(function(){ render(); markSeen(); announceOpen(); }).catch(function(){ showErr('Chat konnte nicht geladen werden. Bitte später erneut versuchen.'); });
-    setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; }, 50);
+    if (isOpen) return;
+    isOpen = true; lastFocus = document.activeElement;
+    box.classList.add('open'); btn.style.display = 'none';
+    lockPage(true); showView(); fit(); updateBadge(); render(); updateSend();
+    init().then(function(){ render(); markSeen(); if (getName()) announceOpen(); }).catch(function(){ showErr('Chat konnte nicht geladen werden. Bitte später erneut versuchen.'); });
+    setTimeout(function(){
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      /* Auf dem Handy nicht automatisch die Tastatur aufklappen */
+      if (!isMobileLayout()) { try { (getName() ? inp : nameIn).focus(); } catch(e){} }
+    }, 60);
   }
   function close(){
-    isOpen = false; box.classList.remove('open', 'kb'); btn.style.display = 'flex';
-    box.style.top=''; box.style.height=''; box.style.bottom='';
+    if (!isOpen) return;
+    isOpen = false; box.classList.remove('open', 'compact'); btn.style.display = 'flex';
+    box.style.top = ''; box.style.height = ''; box.style.bottom = '';
+    try { document.activeElement && document.activeElement.blur(); } catch(e){}
     lockPage(false); updateBadge();
+    try { (lastFocus && document.contains(lastFocus) ? lastFocus : btn).focus({ preventScroll:true }); } catch(e){}
   }
 
+  /* Name bestaetigen -> Chat startet */
+  gateForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var n = cleanName(nameIn.value);
+    if (n.length < 2 || !LETTER.test(n)) {
+      gateErr.textContent = 'Bitte gib deinen Namen ein (mindestens 2 Buchstaben).';
+      try { nameIn.focus(); } catch(x){}
+      return;
+    }
+    gateErr.textContent = '';
+    lsSet('bf_chat_name', n);
+    showView(); render(); updateSend();
+    init().then(function(){ announceOpen(); }).catch(function(){});
+    setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; if (!isMobileLayout()) { try { inp.focus(); } catch(x){} } }, 30);
+  });
+  nameIn.addEventListener('input', function(){ if (gateErr.textContent) gateErr.textContent = ''; });
+
   btn.addEventListener('click', open);
-  $('bfChatClose').addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+  /* Klick auf den abgedunkelten Hintergrund schliesst das Fenster (nur wenn Klick wirklich dort begann) */
+  box.addEventListener('pointerdown', function(e){ downOnBackdrop = (e.target === box); });
+  box.addEventListener('click', function(e){ if (e.target === box && downOnBackdrop) close(); downOnBackdrop = false; });
   sendBtn.addEventListener('click', send);
-  inp.addEventListener('input', function(){ inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,110)+'px'; });
+  inp.addEventListener('input', function(){ autosize(); updateSend(); });
   inp.addEventListener('keydown', function(e){
-    if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(hover: hover)').matches) { e.preventDefault(); send(); }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(hover: hover)').matches) { e.preventDefault(); send(); }
+  });
+  /* Escape schliesst, Tab bleibt im Fenster */
+  document.addEventListener('keydown', function(e){
+    if (!isOpen) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+    var f = Array.prototype.filter.call(win.querySelectorAll('button, input, textarea'), function(n){ return !n.disabled && n.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length-1], ae = document.activeElement;
+    if (!win.contains(ae)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && ae === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && ae === last) { e.preventDefault(); first.focus(); }
   });
   document.addEventListener('visibilitychange', function(){ if (isOpen && document.visibilityState === 'visible') markSeen(); });
 
