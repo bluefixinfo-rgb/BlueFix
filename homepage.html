@@ -1254,6 +1254,10 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 .bfc-send{width:44px; height:44px; border-radius:50%; border:none; background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; cursor:pointer; flex:none; display:flex; align-items:center; justify-content:center;}
 .bfc-send:disabled{opacity:.5;}
 .bfc-send svg{width:20px; height:20px;}
+.bfc-typing .bfc-b{display:flex; gap:5px; align-items:center; padding:13px 16px;}
+.bfc-typing i{width:7px; height:7px; border-radius:50%; background:#8a99b8; animation:bfDot 1.2s infinite ease-in-out;}
+.bfc-typing i:nth-child(2){animation-delay:.18s;} .bfc-typing i:nth-child(3){animation-delay:.36s;}
+@keyframes bfDot{0%,80%,100%{opacity:.25; transform:translateY(0);}40%{opacity:1; transform:translateY(-3px);}}
 .bfc-err{color:#ff9a9a; font-size:12.5px; text-align:center; padding:6px 12px; background:#070d18; display:none;}
 </style>
 
@@ -1265,7 +1269,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 <div id="bfChat" role="dialog" aria-label="Chat mit BlueFix">
   <div class="bfc-head">
     <div class="bfc-av">B</div>
-    <div class="bfc-ti"><b>BlueFix Support</b><span>Wir antworten so schnell wie möglich</span></div>
+    <div class="bfc-ti"><b>BlueFix Assistent</b><span>KI-Assistent · bei Bedarf meldet sich unser Team</span></div>
     <button class="bfc-x" id="bfChatClose" type="button" aria-label="Chat schliessen">×</button>
   </div>
   <div class="bfc-msgs" id="bfcMsgs"></div>
@@ -1288,6 +1292,8 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   };
   /* Vercel-Funktion, die die Push-Nachricht an Jerome/Thierry schickt (api/chat-notify.js) */
   var NOTIFY_URL = 'https://bluefix-website.vercel.app/api/chat-notify';
+  /* Vercel-Funktion mit dem KI-Assistenten (api/chat-ai.js) */
+  var AI_URL = 'https://bluefix-website.vercel.app/api/chat-ai';
 
   var mem = {};
   function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return mem[k] || null; } }
@@ -1307,7 +1313,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       sendBtn=$('bfcSend'), nameWrap=$('bfcName'), nameIn=$('bfcNameIn'), errEl=$('bfcErr');
 
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
-  var msgs=[], sess={}, isOpen=false, lastSend=0;
+  var msgs=[], sess={}, isOpen=false, lastSend=0, aiWaitUntil=0, aiTimer=null, scrollYSaved=0;
 
   function loadScript(src){
     return new Promise(function(res,rej){
@@ -1369,20 +1375,27 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
     var w = el('div','bfc-row them');
     w.appendChild(el('div','bfc-who','BlueFix'));
-    w.appendChild(el('div','bfc-b','Hallo! 👋 Schön, dass du da bist. Schreib uns kurz, worum es geht (z.B. Gerät und Problem) – wir melden uns so schnell wie möglich hier im Chat.'));
+    w.appendChild(el('div','bfc-b','Hallo! 👋 Ich bin der KI-Assistent von BlueFix. Ich beantworte dir gern Fragen, z.B. zu Preisen, Garantie oder Ablauf. Geht es um eine Reparatur oder ein Problem, gebe ich es an unser Team weiter – ein Mitarbeiter meldet sich dann bei dir.'));
     msgsEl.appendChild(w);
     var lastMe = -1;
     msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
     msgs.forEach(function(m,i){
       var me = m.from === 'visitor';
       var row = el('div','bfc-row ' + (me ? 'me' : 'them'));
-      if (!me) row.appendChild(el('div','bfc-who',(m.agent || 'BlueFix') + ' | BlueFix Team'));
+      if (!me) row.appendChild(el('div','bfc-who', m.ai ? '🤖 BlueFix KI-Assistent' : ((m.agent || 'BlueFix') + ' | BlueFix Team')));
       row.appendChild(el('div','bfc-b',m.text));
       var meta = hm(m.ts);
       if (me && i === lastMe) meta += (sess.teamReadAt && sess.teamReadAt >= m.ts) ? ' · ✓✓ Gelesen' : ' · ✓ Gesendet';
       row.appendChild(el('div','bfc-meta',meta));
       msgsEl.appendChild(row);
     });
+    var lastMsg = msgs[msgs.length-1];
+    if (lastMsg && lastMsg.from === 'visitor' && Date.now() < aiWaitUntil) {
+      var tr = el('div','bfc-row them bfc-typing'); tr.appendChild(el('div','bfc-who','🤖 BlueFix KI-Assistent'));
+      var tb = el('div','bfc-b'); tb.innerHTML = '<i></i><i></i><i></i>'; tr.appendChild(tb); msgsEl.appendChild(tr);
+      nearBottom = true;
+      clearTimeout(aiTimer); aiTimer = setTimeout(render, Math.max(200, aiWaitUntil - Date.now() + 50));
+    }
     if (nearBottom || msgs.length <= 1) msgsEl.scrollTop = msgsEl.scrollHeight;
     nameWrap.classList.toggle('show', !msgs.length && !lsGet('bf_chat_name'));
   }
@@ -1404,7 +1417,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       var batch = db.batch();
       batch.set(sRef, {
         name: name || 'Besucher', short: short, createdAt: started,
-        lastMessageAt: now, lastText: text.slice(0,140), lastFrom: 'visitor',
+        lastMessageAt: now, lastText: text.slice(0,140), lastFrom: 'visitor', lastEventAt: now, lastEventKind: 'msg',
         unreadTeam: firebase.firestore.FieldValue.increment(1),
         page: (location.pathname || '/').slice(0,80)
       }, { merge:true });
@@ -1412,21 +1425,65 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       await batch.commit();
       inp.value = ''; inp.style.height = 'auto';
       try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }), keepalive:true }).catch(function(){}); } catch(e){}
+      /* KI antwortet zuerst. Während sie schreibt, zeigen wir "tippt …". */
+      aiWaitUntil = Date.now() + 25000; render();
+      try { fetch(AI_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }) }).then(function(){ setTimeout(function(){ aiWaitUntil = 0; render(); }, 1500); }).catch(function(){ aiWaitUntil = 0; render(); }); } catch(e){ aiWaitUntil = 0; }
     } catch(e) {
       showErr('Nachricht konnte nicht gesendet werden. Bitte Internetverbindung prüfen – oder ruf uns direkt an.');
     } finally { sendBtn.disabled = false; }
   }
 
+  /* ---- Handy-Tastatur: Chat passt sich dem sichtbaren Bereich an, der ganze Chat bleibt sichtbar ---- */
+  var vv = window.visualViewport;
+  function isMobileLayout(){ return window.innerWidth < 640; }
+  function fitChat(){
+    if (!isOpen || !isMobileLayout()) { box.style.top=''; box.style.height=''; box.style.bottom=''; return; }
+    var h = vv ? vv.height : window.innerHeight, top = vv ? vv.offsetTop : 0;
+    box.style.bottom = 'auto'; box.style.top = top + 'px'; box.style.height = h + 'px';
+    if (window.scrollY) window.scrollTo(0, 0);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+  function lockPage(on){
+    var b = document.body, de = document.documentElement;
+    if (on && isMobileLayout()) {
+      scrollYSaved = window.pageYOffset || 0;
+      de.style.overflow = 'hidden';
+      b.style.position = 'fixed'; b.style.top = (-scrollYSaved) + 'px'; b.style.left = '0'; b.style.right = '0'; b.style.width = '100%';
+    } else {
+      de.style.overflow = '';
+      if (b.style.position === 'fixed') {
+        b.style.position = ''; b.style.top = ''; b.style.left = ''; b.style.right = ''; b.style.width = '';
+        window.scrollTo(0, scrollYSaved);
+      }
+    }
+  }
+  if (vv) { vv.addEventListener('resize', fitChat); vv.addEventListener('scroll', fitChat); }
+  window.addEventListener('resize', fitChat);
+  inp.addEventListener('focus', function(){ setTimeout(fitChat, 50); setTimeout(fitChat, 300); });
+  nameIn.addEventListener('focus', function(){ setTimeout(fitChat, 50); setTimeout(fitChat, 300); });
+
+  /* Dem Team Bescheid geben, dass jemand den Chat geöffnet hat (max. 1x pro 30 Min). */
+  function announceOpen(){
+    var last = parseInt(lsGet('bf_chat_open_ping') || '0', 10), now = Date.now();
+    if (now - last < 30*60*1000) return;
+    lsSet('bf_chat_open_ping', String(now));
+    sRef.set({ lastEventAt: now, lastEventKind: 'open', openedAt: now, name: (lsGet('bf_chat_name') || 'Besucher'), short: short, page: (location.pathname || '/').slice(0,80) }, { merge:true })
+      .then(function(){
+        try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid, event: 'open' }), keepalive:true }).catch(function(){}); } catch(e){}
+      }).catch(function(){});
+  }
+
   function open(){
     isOpen = true; box.classList.add('open'); btn.style.display = 'none';
-    document.documentElement.style.overflow = window.innerWidth < 640 ? 'hidden' : '';
+    lockPage(true); fitChat();
     updateBadge(); render();
-    init().then(function(){ render(); markSeen(); }).catch(function(){ showErr('Chat konnte nicht geladen werden. Bitte später erneut versuchen.'); });
+    init().then(function(){ render(); markSeen(); announceOpen(); }).catch(function(){ showErr('Chat konnte nicht geladen werden. Bitte später erneut versuchen.'); });
     setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; }, 50);
   }
   function close(){
     isOpen = false; box.classList.remove('open'); btn.style.display = 'flex';
-    document.documentElement.style.overflow = ''; updateBadge();
+    box.style.top=''; box.style.height=''; box.style.bottom='';
+    lockPage(false); updateBadge();
   }
 
   btn.addEventListener('click', open);
