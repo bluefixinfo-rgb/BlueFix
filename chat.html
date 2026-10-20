@@ -107,7 +107,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <p>Wie dürfen wir dich nennen? Danach startet dein Chat.</p>
         <form id="bfcGateForm" novalidate>
           <label for="bfcNameIn">Dein Name</label>
-          <input id="bfcNameIn" type="text" maxlength="40" placeholder="z. B. Lena" autocomplete="given-name" autocapitalize="words" enterkeyhint="go">
+          <input id="bfcNameIn" type="text" readonly inputmode="none" maxlength="40" placeholder="z. B. Lena" autocomplete="given-name" autocapitalize="words" enterkeyhint="go">
           <div class="bfc-gate-err" id="bfcGateErr" role="alert"></div>
           <button class="bfc-go" type="submit">Chat starten</button>
         </form>
@@ -123,14 +123,15 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         <textarea id="bfcIn" rows="1" maxlength="1000" readonly inputmode="none" placeholder="Nachricht schreiben …" aria-label="Nachricht" enterkeyhint="send"></textarea>
         <button class="bfc-send" id="bfcSend" type="button" aria-label="Senden" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
       </div>
-      <div class="bf-keyboard" id="bfKeyboard" aria-label="BlueFix Tastatur">
+
+    </div>
+    <div class="bf-keyboard" id="bfKeyboard" aria-label="BlueFix Tastatur">
         <div class="bf-kb-brand"><div class="bf-kb-logo" aria-label="BlueFix">B</div></div>
         <div class="bf-kb-suggestions"><button type="button" data-suggest="Ich">Ich</button><button type="button" data-suggest="Hallo">Hallo</button><button type="button" data-suggest="Ja">Ja</button></div>
         <div class="bf-kb-row"><button class="bf-key">Q</button><button class="bf-key">W</button><button class="bf-key">E</button><button class="bf-key">R</button><button class="bf-key">T</button><button class="bf-key">Z</button><button class="bf-key">U</button><button class="bf-key">I</button><button class="bf-key">O</button><button class="bf-key">P</button><button class="bf-key">Ü</button></div>
         <div class="bf-kb-row"><button class="bf-key">A</button><button class="bf-key">S</button><button class="bf-key">D</button><button class="bf-key">F</button><button class="bf-key">G</button><button class="bf-key">H</button><button class="bf-key">J</button><button class="bf-key">K</button><button class="bf-key">L</button><button class="bf-key">Ö</button><button class="bf-key">Ä</button></div>
         <div class="bf-kb-row"><button class="bf-key wide shift" data-kb="shift">⇧</button><button class="bf-key">Y</button><button class="bf-key">X</button><button class="bf-key">C</button><button class="bf-key">V</button><button class="bf-key">B</button><button class="bf-key">N</button><button class="bf-key">M</button><button class="bf-key wide" data-kb="backspace">⌫</button></div>
         <div class="bf-kb-row"><button class="bf-key wide" data-kb="numbers">123</button><button class="bf-key space" data-kb="space">BlueFix · Leerzeichen</button><button class="bf-key return" data-kb="enter">↑</button></div>
-      </div>
     </div>
   </div>
 </div>
@@ -169,7 +170,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
   var sessSeen=false, msgs=[], sess={}, lastSend=0, aiWaitUntil=0, aiTimer=null, aiFailAfter=0;
   var sending=false;
-  var keyboard = $('bfKeyboard'), shiftOn = false, numberMode = false, capsLock = false, deleteHoldTimer = null, deleteRepeatTimer = null, deleteHeld = false;
+  var keyboard = $('bfKeyboard'), activeInput = null, shiftOn = false, numberMode = false, capsLock = false, deleteHoldTimer = null, deleteRepeatTimer = null, deleteHeld = false;
 
   var LETTER; try { LETTER = new RegExp('\\p{L}','u'); } catch(e){ LETTER = /[A-Za-zÀ-ɏ]/; }
   function cleanName(v){ return String(v || '').replace(/\s+/g,' ').trim().slice(0,40); }
@@ -387,6 +388,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     }
     gateErr.textContent = '';
     lsSet('bf_chat_name', n);
+    hideKeyboard(); activeInput=inp;
     showView(); render(); updateSend();
     init().then(function(){ announceOpen(); }).catch(function(){});
     setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; if (!isMobileLayout()) { try { inp.focus(); } catch(x){} } }, 30);
@@ -400,10 +402,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') markSeen(); });
 
   /* Eigene BlueFix-Tastatur */
-  function showKeyboard(){if(!isMobileLayout()||chatView.hidden)return;keyboard.classList.add('visible');paintShift();fit();}
+  function showKeyboard(target){if(!isMobileLayout())return;activeInput=target||activeInput||((!gate.hidden)?nameIn:inp);if(activeInput===inp&&chatView.hidden)return;keyboard.classList.add('visible');paintShift();fit();}
   function hideKeyboard(){keyboard.classList.remove('visible');fit();}
-  function insertText(t){var a=typeof inp.selectionStart==='number'?inp.selectionStart:inp.value.length,b=typeof inp.selectionEnd==='number'?inp.selectionEnd:a;inp.value=inp.value.slice(0,a)+t+inp.value.slice(b);var pos=a+t.length;try{inp.setSelectionRange(pos,pos);}catch(x){}autosize();updateSend();}
-  function backspace(){var a=typeof inp.selectionStart==='number'?inp.selectionStart:inp.value.length,b=typeof inp.selectionEnd==='number'?inp.selectionEnd:a;if(a===b&&a>0)a--;inp.value=inp.value.slice(0,a)+inp.value.slice(b);try{inp.setSelectionRange(a,a);}catch(x){}autosize();updateSend();}
+  function insertText(t){var field=activeInput||inp,a=typeof field.selectionStart==='number'?field.selectionStart:field.value.length,b=typeof field.selectionEnd==='number'?field.selectionEnd:a;field.value=field.value.slice(0,a)+t+field.value.slice(b);var pos=a+t.length;try{field.setSelectionRange(pos,pos);}catch(x){}if(field===inp){autosize();updateSend();}else if(gateErr.textContent)gateErr.textContent='';}
+  function backspace(){var field=activeInput||inp,a=typeof field.selectionStart==='number'?field.selectionStart:field.value.length,b=typeof field.selectionEnd==='number'?field.selectionEnd:a;if(a===b&&a>0)a--;field.value=field.value.slice(0,a)+field.value.slice(b);try{field.setSelectionRange(a,a);}catch(x){}if(field===inp){autosize();updateSend();}else if(gateErr.textContent)gateErr.textContent='';}
   function paintShift(){var sb=keyboard.querySelector('[data-kb="shift"]');if(sb)sb.classList.toggle('active',shiftOn||capsLock);keyboard.querySelectorAll('.bf-kb-row .bf-key:not([data-kb])').forEach(function(k){if(!numberMode){var v=k.textContent;k.textContent=(shiftOn||capsLock)?v.toUpperCase():v.toLowerCase();}});}
   function stopDeleteRepeat(){clearTimeout(deleteHoldTimer);clearInterval(deleteRepeatTimer);deleteHoldTimer=null;deleteRepeatTimer=null;}
   keyboard.addEventListener('pointerdown',function(e){var b=e.target.closest('.bf-key');if(!b)return;b.classList.add('bf-key-tap');try{if(navigator.vibrate)navigator.vibrate(10);}catch(x){}if(b.getAttribute('data-kb')==='backspace'){deleteHeld=false;stopDeleteRepeat();deleteHoldTimer=setTimeout(function(){deleteHeld=true;deleteRepeatTimer=setInterval(backspace,55);},380);}});
@@ -416,8 +418,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     var key=b.textContent.trim();if(key.length===1){insertText((shiftOn||capsLock)?key.toUpperCase():key.toLowerCase());if(shiftOn){shiftOn=false;paintShift();}}
   });
   paintShift();
-  inp.addEventListener('click',showKeyboard);inp.addEventListener('focus',function(){if(isMobileLayout())showKeyboard();});
-  document.addEventListener('pointerdown',function(e){if(!keyboard.contains(e.target)&&e.target!==inp&&e.target!==sendBtn)hideKeyboard();});
+  [inp,nameIn].forEach(function(field){field.addEventListener('click',function(){showKeyboard(field);});field.addEventListener('focus',function(){if(isMobileLayout())showKeyboard(field);});});
+  document.addEventListener('pointerdown',function(e){if(!keyboard.contains(e.target)&&e.target!==inp&&e.target!==nameIn&&e.target!==sendBtn&&!keyboard.contains(e.target))hideKeyboard();});
 
   /* Start */
   showView(); render(); updateSend();
