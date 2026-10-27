@@ -1130,7 +1130,12 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       if (id && id !== 'top' && !el) return;
       e.preventDefault();
       setTimeout(function(){
-        if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+        if (el) {
+          var hb = document.querySelector('.topbar').offsetHeight;
+          var pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
+          var y = el.getBoundingClientRect().top + window.pageYOffset + pad - hb - 24;
+          window.scrollTo({top: Math.max(0, y), behavior:'smooth'});
+        }
         else window.scrollTo({top:0, behavior:'smooth'});
         clean();
       }, 30);
