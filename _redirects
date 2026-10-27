@@ -1,9 +1,0 @@
-# Startseite: blue-fix.ch zeigt homepage.html, ohne Zusatz in der Adresszeile
-/                /homepage.html   200!
-/homepage.html   /                301!
-/homepage        /                301!
-# Wartungsseite (Datei index.html) unter /wartung
-/wartung         /index.html      200
-# Chat ohne .html
-/chat.html       /chat            301!
-/chat            /chat.html       200
