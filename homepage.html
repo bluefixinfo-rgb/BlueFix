@@ -1143,31 +1143,6 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
   });
 })();
 </script>
-<script>
-/* Hero-Video: nach dem Abspielen bleibt das fertige (geschlossene) Handy stehen.
-   Das letzte Bild wird als Standbild festgehalten, damit es beim Hoch-Scrollen
-   nicht wieder auf "offen" zurückspringt oder neu startet. */
-(function(){
-  var v = document.getElementById('heroVideo');
-  if (!v) return;
-  var frozen = false;
-  function freeze(){
-    if (frozen) return;
-    try {
-      var c = document.createElement('canvas');
-      c.width = v.videoWidth || 835; c.height = v.videoHeight || 840;
-      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-      c.className = v.className; c.removeAttribute('id');
-      v.parentNode.insertBefore(c, v);
-      v.style.display = 'none';
-      frozen = true;
-    } catch(e) {
-      try { v.currentTime = Math.max(0, v.duration - 0.05); v.pause(); } catch(e2){}
-    }
-  }
-  v.addEventListener('ended', freeze);
-})();
-</script>
 <div class="scroll-progress" id="scrollProgress"></div>
 <script>
 (function(){
