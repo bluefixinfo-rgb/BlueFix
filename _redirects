@@ -1,0 +1,5 @@
+# .html aus der Adresszeile entfernen (! = gilt auch, wenn die Datei existiert)
+/homepage.html   /homepage        301!
+/homepage        /homepage.html   200
+/chat.html       /chat            301!
+/chat            /chat.html       200
