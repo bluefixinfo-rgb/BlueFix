@@ -65,6 +65,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .bfc-row.them{align-self:flex-start; align-items:flex-start;}
 .bfc-who{font-size:11.5px; color:#8a99b8; margin:0 4px 3px;}
 .bfc-b{padding:10px 14px; border-radius:18px; font-size:15px; line-height:1.4; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;}
+.bfc-b a{color:#1e6fef; font-weight:600; text-decoration:underline;}
+.bfc-row.me .bfc-b a{color:#fff;}
 .bfc-row.me .bfc-b{background:linear-gradient(135deg,#2f7ce0,#14488f); color:#fff; border-bottom-right-radius:5px;}
 .bfc-row.them .bfc-b{background:#f5f8ff; color:#0b1322; border-bottom-left-radius:5px;}
 .bfc-meta{font-size:11px; color:#8a99b8; margin:3px 4px 0;}
@@ -225,6 +227,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   function hm(ts){ var d=new Date(ts); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
   function el(tag, cls, txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
 
+  // Text mit klickbaren blue-fix.ch-Links (z. B. blue-fix.ch/newsletter); alles andere bleibt reiner Text.
+  function bubble(text){
+    var b = el('div','bfc-b');
+    var re = /((?:https?:\/\/)?(?:www\.)?blue-fix\.ch(?:\/[^\s<>"]*)?)/gi, last = 0, mt;
+    text = String(text == null ? '' : text);
+    while ((mt = re.exec(text))) {
+      var url = mt[1].replace(/[.,;:!?)]+$/, '');
+      if (mt.index > last) b.appendChild(document.createTextNode(text.slice(last, mt.index)));
+      var a = document.createElement('a');
+      a.textContent = url; a.href = /^https?:/i.test(url) ? url : 'https://' + url;
+      a.target = '_blank'; a.rel = 'noopener';
+      b.appendChild(a);
+      last = mt.index + url.length; re.lastIndex = last;
+    }
+    if (last < text.length) b.appendChild(document.createTextNode(text.slice(last)));
+    return b;
+  }
+
   function showView(){
     var name = getName();
     gate.hidden = !!name;
@@ -247,7 +267,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       var me = m.from === 'visitor';
       var row = el('div','bfc-row ' + (me ? 'me' : 'them'));
       if (!me) row.appendChild(el('div','bfc-who', m.ai ? '🤖 BlueFix KI-Assistent' : ((m.agent || 'BlueFix') + ' | BlueFix Team')));
-      row.appendChild(el('div','bfc-b',m.text));
+      row.appendChild(bubble(m.text));
       var meta = hm(m.ts);
       if (me && i === lastMe) meta += (sess.teamReadAt && sess.teamReadAt >= m.ts) ? ' · ✓✓ Gelesen' : ' · ✓ Gesendet';
       row.appendChild(el('div','bfc-meta',meta));
