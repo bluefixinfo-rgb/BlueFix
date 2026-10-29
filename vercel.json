@@ -4,6 +4,7 @@
     { "src": "^/$", "dest": "/homepage.html" },
     { "src": "^/wartung/?$", "dest": "/index.html" },
     { "src": "^/chat/?$", "dest": "/chat.html" },
+    { "src": "^/reparatur/?$", "dest": "/status.html" },
     { "handle": "filesystem" }
   ]
 }
