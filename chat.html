@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;}
+html{color-scheme:dark;}
 html,body{margin:0; height:100%; background:#04070d; color:#f5f8ff; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden; overscroll-behavior:none;}
 button,input,textarea{font-family:inherit;}
 [hidden]{display:none !important;}
@@ -51,6 +52,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .bfc-gate label{font-size:13px; font-weight:500; color:#c9d6f0;}
 .bfc-gate input{width:100%; background:#0d1a2e; border:1px solid #1c2b45; color:#f5f8ff; border-radius:12px; padding:13px 15px; font:16px 'Inter',sans-serif; transition:border-color .15s, box-shadow .15s;}
 .bfc-gate input:focus{outline:none; border-color:#4a9cff; box-shadow:0 0 0 3px rgba(74,156,255,.18);}
+.bfc-gate input{background-color:#0d1a2e; color-scheme:dark; -webkit-appearance:none; appearance:none;}
+.bfc-gate input::placeholder{color:#6d7d9c; opacity:1;}
+/* Autofill (iOS/Chrome) faerbt Felder sonst hellblau/weiss -> immer dunkelblau erzwingen */
+.bfc-gate input:-webkit-autofill,
+.bfc-gate input:-webkit-autofill:hover,
+.bfc-gate input:-webkit-autofill:focus,
+.bfc-gate input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 1000px #0d1a2e inset !important;
+  box-shadow:0 0 0 1000px #0d1a2e inset !important;
+  -webkit-text-fill-color:#f5f8ff !important;
+  caret-color:#f5f8ff;
+  transition:background-color 600000s 0s, color 600000s 0s;
+}
 .bfc-gate-err{min-height:18px; font-size:12.5px; color:#ff9a9a;}
 .bfc-go{width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#4a9cff,#1e6fef); color:#fff; font:600 15px 'Inter',sans-serif; cursor:pointer; box-shadow:0 8px 22px -8px rgba(30,111,239,.7); transition:transform .15s, filter .15s;}
 .bfc-go:hover{filter:brightness(1.08);}
@@ -223,7 +237,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     sid = newSid(); lsSet('bf_chat_sid', sid); short = sid.slice(0,4).toUpperCase();
     sRef = db.collection('livechat_sessions').doc(sid);
     msgs = []; sess = {}; sessSeen = false; aiWaitUntil = 0; aiFailAfter = 0; clearTimeout(aiTimer);
-    inp.value = ''; autosize(); nameIn.value = ''; lastIn.value = ''; gateErr.textContent = ''; showErr('');
+    inp.value = ''; autosize(); try { gateForm.reset(); nameIn.blur(); lastIn.blur(); } catch(e){} nameIn.value = ''; lastIn.value = ''; gateErr.textContent = ''; showErr('');
     showView(); render(); updateSend();
     listen();
   }
@@ -268,7 +282,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
     var w = el('div','bfc-row them');
     w.appendChild(el('div','bfc-who','BlueFix'));
-    w.appendChild(el('div','bfc-b','Hallo ' + firstName(getName()) + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, nehme ich deinen Auftrag gleich hier auf. Danach meldet sich das Team innerhalb von 24 Stunden bei dir.'));
+    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, nehme ich deinen Auftrag gleich hier auf. Danach meldet sich das Team innerhalb von 24 Stunden bei dir.'));
     msgsEl.appendChild(w);
     var lastMe = -1;
     msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
