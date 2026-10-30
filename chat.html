@@ -205,6 +205,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         else if (sessSeen || lsGet('bf_chat_started')) { resetChat(); return; }
       }
       sess = d.exists ? d.data() : {};
+      checkClosed();
       render(); markSeen();
     }, function(){});
     unsubMsgs = sRef.collection('messages').orderBy('ts').onSnapshot(function(snap){
@@ -305,12 +306,24 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     inp.style.height = h + 'px';
     inp.style.overflowY = inp.scrollHeight + 2 > 110 ? 'auto' : 'hidden';
   }
-  function updateSend(){ sendBtn.disabled = sending || !inp.value.trim(); }
+  function updateSend(){ sendBtn.disabled = sending || !!(sess && sess.chatClosed) || !inp.value.trim(); }
+
+  /* Chat wegen Beleidigungen beendet: Eingabe sperren, letzte Nachricht kurz zeigen, dann den Chat fuer den Besucher loeschen. */
+  var closeTimer = null;
+  function checkClosed(){
+    if (!(sess && sess.chatClosed)) return;
+    inp.disabled = true; sendBtn.disabled = true;
+    if (closeTimer) return;
+    closeTimer = setTimeout(function(){
+      closeTimer = null; inp.disabled = false;
+      if (db) resetChat();
+    }, 8000);
+  }
 
   /* KI-Funktion aufrufen. Bei Fehler einmal wiederholen; klappt es gar nicht, kommt die Hinweis-Nachricht. */
   function askAI(attempt){
     var sentAt = Date.now();
-    return fetch(AI_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }) })
+    return fetch(AI_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid, name: getName() }) })
       .then(function(r){
         return r.json().catch(function(){ return {}; }).then(function(j){ return { status:r.status, j:j || {} }; });
       })
@@ -329,7 +342,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     var text = inp.value.trim().slice(0,1000);
     var name = getName();
     if (!name) { showView(); return; }
-    if (!text || sending || Date.now() - lastSend < 700) return;
+    if (!text || sending || (sess && sess.chatClosed) || Date.now() - lastSend < 700) return;
     lastSend = Date.now();
     sending = true; updateSend(); showErr('');
     try {
