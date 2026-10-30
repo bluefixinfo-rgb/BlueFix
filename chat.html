@@ -101,14 +101,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       <div class="bfc-gate-in">
         <div class="bfc-gate-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h2>Willkommen bei BlueFix</h2>
-        <p>Wie dürfen wir dich nennen? Danach startet dein Chat.</p>
+        <p>Bitte gib deinen Vor- und Nachnamen ein. Danach startet dein Chat.</p>
         <form id="bfcGateForm" novalidate>
-          <label for="bfcNameIn">Dein Name</label>
-          <input id="bfcNameIn" type="text" maxlength="40" placeholder="z. B. Lena" autocomplete="given-name" autocapitalize="words" enterkeyhint="go">
+          <label for="bfcNameIn">Vorname</label>
+          <input id="bfcNameIn" type="text" maxlength="30" placeholder="z. B. Lena" autocomplete="given-name" autocapitalize="words" enterkeyhint="next">
+          <label for="bfcLastIn">Nachname</label>
+          <input id="bfcLastIn" type="text" maxlength="30" placeholder="z. B. Muster" autocomplete="family-name" autocapitalize="words" enterkeyhint="go">
           <div class="bfc-gate-err" id="bfcGateErr" role="alert"></div>
           <button class="bfc-go" type="submit">Chat starten</button>
         </form>
-        <div class="bfc-note">Dein Name wird nur für die Anrede im Chat und für unser Team verwendet.</div>
+        <div class="bfc-note">Dein Name wird nur für den Chat, deinen Auftrag und unser Team verwendet.</div>
       </div>
     </div>
 
@@ -153,15 +155,21 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 
   var $ = function(id){ return document.getElementById(id); };
   var app=$('app'), msgsEl=$('bfcMsgs'), inp=$('bfcIn'), sendBtn=$('bfcSend'), errEl=$('bfcErr'), subEl=$('bfcSub'),
-      gate=$('bfcGate'), chatView=$('bfcChatView'), gateForm=$('bfcGateForm'), nameIn=$('bfcNameIn'), gateErr=$('bfcGateErr');
+      gate=$('bfcGate'), chatView=$('bfcChatView'), gateForm=$('bfcGateForm'), nameIn=$('bfcNameIn'), lastIn=$('bfcLastIn'), gateErr=$('bfcGateErr');
 
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
   var sessSeen=false, msgs=[], sess={}, lastSend=0, aiWaitUntil=0, aiTimer=null, aiFailAfter=0;
   var sending=false;
 
   var LETTER; try { LETTER = new RegExp('\\p{L}','u'); } catch(e){ LETTER = /[A-Za-zÀ-ɏ]/; }
-  function cleanName(v){ return String(v || '').replace(/\s+/g,' ').trim().slice(0,40); }
-  function getName(){ return cleanName(lsGet('bf_chat_name')); }
+  function cleanName(v){ return String(v || '').replace(/\s+/g,' ').trim().slice(0,60); }
+  // Vor- UND Nachname: mindestens zwei Wörter, jedes mit mindestens 2 Buchstaben, keine Ziffern.
+  function isFullName(n){
+    var parts = String(n || '').split(' ').filter(Boolean);
+    return parts.length >= 2 && parts.every(function(w){ return w.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g,'').length >= 2; }) && !/\d/.test(n);
+  }
+  function firstName(n){ return String(n || '').split(' ')[0]; }
+  function getName(){ var n = cleanName(lsGet('bf_chat_name')); return isFullName(n) ? n : ''; }
   function isMobileLayout(){ return window.innerWidth < 640; }
 
   function loadScript(src){
@@ -214,7 +222,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     sid = newSid(); lsSet('bf_chat_sid', sid); short = sid.slice(0,4).toUpperCase();
     sRef = db.collection('livechat_sessions').doc(sid);
     msgs = []; sess = {}; sessSeen = false; aiWaitUntil = 0; aiFailAfter = 0; clearTimeout(aiTimer);
-    inp.value = ''; autosize(); nameIn.value = ''; gateErr.textContent = ''; showErr('');
+    inp.value = ''; autosize(); nameIn.value = ''; lastIn.value = ''; gateErr.textContent = ''; showErr('');
     showView(); render(); updateSend();
     listen();
   }
@@ -259,7 +267,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     msgsEl.appendChild(el('div','bfc-sys','Chat gestartet'));
     var w = el('div','bfc-row them');
     w.appendChild(el('div','bfc-who','BlueFix'));
-    w.appendChild(el('div','bfc-b','Hallo ' + getName() + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, nehme ich deinen Auftrag gleich hier auf. Danach meldet sich das Team innerhalb von 24 Stunden bei dir.'));
+    w.appendChild(el('div','bfc-b','Hallo ' + firstName(getName()) + '! 👋 Ich bin der KI-Assistent von BlueFix. Wie kann ich dir helfen? Schreib mir einfach, welches Handy du hast und was kaputt ist, dann sage ich dir direkt, was die Reparatur kostet. Wenn du eine Reparatur machen lassen möchtest, nehme ich deinen Auftrag gleich hier auf. Danach meldet sich das Team innerhalb von 24 Stunden bei dir.'));
     msgsEl.appendChild(w);
     var lastMe = -1;
     msgs.forEach(function(m,i){ if (m.from==='visitor') lastMe = i; });
@@ -385,10 +393,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 
   gateForm.addEventListener('submit', function(e){
     e.preventDefault();
-    var n = cleanName(nameIn.value);
-    if (n.length < 2 || !LETTER.test(n)) {
-      gateErr.textContent = 'Bitte gib deinen Namen ein (mindestens 2 Buchstaben).';
-      try { nameIn.focus(); } catch(x){}
+    var n = cleanName(cleanName(nameIn.value) + ' ' + cleanName(lastIn.value));
+    var okF = cleanName(nameIn.value).replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g,'').length >= 2, okL = cleanName(lastIn.value).replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g,'').length >= 2;
+    if (!okF || !okL || !isFullName(n)) {
+      gateErr.textContent = 'Bitte gib Vorname und Nachname in die zwei Felder ein.';
+      try { (okF ? lastIn : nameIn).focus(); } catch(x){}
       return;
     }
     gateErr.textContent = '';
@@ -398,6 +407,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     setTimeout(function(){ msgsEl.scrollTop = msgsEl.scrollHeight; if (!isMobileLayout()) { try { inp.focus(); } catch(x){} } }, 30);
   });
   nameIn.addEventListener('input', function(){ if (gateErr.textContent) gateErr.textContent = ''; });
+  nameIn.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); try { lastIn.focus(); } catch(x){} } });
+  lastIn.addEventListener('input', function(){ if (gateErr.textContent) gateErr.textContent = ''; });
   sendBtn.addEventListener('click', send);
   inp.addEventListener('input', function(){ autosize(); updateSend(); });
   inp.addEventListener('keydown', function(e){
