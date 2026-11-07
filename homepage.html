@@ -245,18 +245,40 @@ section{padding:80px 0;}
 .config-step-title{font-family:var(--serif); font-size:22.5px; margin:0 0 22px; text-align:center;}
 .option-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
 @media (max-width:560px){ .option-grid{grid-template-columns:1fr;} }
-.option-btn{background:var(--bg-panel-2); border:1px solid var(--line); color:var(--white); padding:18px 20px; border-radius:12px; font-size:17.5px; font-weight:600; font-family:var(--sans); text-align:left; cursor:pointer; transition:border-color .15s ease, transform .15s ease, background .15s ease; opacity:0; animation:fadeInUp .4s cubic-bezier(.22,.68,.36,1) both;}
+.option-btn{background:var(--bg-panel-2); border:1px solid var(--line); color:var(--white); padding:18px 20px; border-radius:12px; font-size:17.5px; font-weight:600; font-family:var(--sans); text-align:left; cursor:pointer; position:relative; -webkit-tap-highlight-color:transparent; touch-action:manipulation; transition:border-color .18s ease, transform .18s cubic-bezier(.22,.68,.36,1), background .18s ease, box-shadow .2s ease; opacity:0; animation:fadeInUp .4s cubic-bezier(.22,.68,.36,1) both;}
 .option-grid > *:nth-child(1){animation-delay:.03s;} .option-grid > *:nth-child(2){animation-delay:.08s;}
 .option-grid > *:nth-child(3){animation-delay:.13s;} .option-grid > *:nth-child(4){animation-delay:.18s;}
 .option-grid > *:nth-child(5){animation-delay:.23s;} .option-grid > *:nth-child(6){animation-delay:.28s;}
-.option-btn:hover{border-color:var(--blue-light); transform:translateY(-2px); background:rgba(var(--blue-rgb),0.08); box-shadow:0 10px 24px -14px rgba(var(--blue-rgb),0.6);}
+.option-btn:focus{outline:none;}
+.option-btn:focus-visible{outline:2px solid var(--blue-light); outline-offset:2px;}
+@media (hover:hover){
+  .option-btn:hover{border-color:var(--blue-light); transform:translateY(-2px); background:rgba(var(--blue-rgb),0.08); box-shadow:0 10px 24px -14px rgba(var(--blue-rgb),0.6);}
+}
+/* Antippen: kurz eindrücken, blau aufleuchten */
+.option-btn:active, .option-btn.tapped{opacity:1; transform:scale(.965); border-color:var(--blue-light); background:rgba(var(--blue-rgb),0.2); box-shadow:0 0 0 4px rgba(var(--blue-rgb),0.18), 0 6px 18px -8px rgba(var(--blue-rgb),0.7); transition-duration:.08s;}
+@keyframes optPop{0%{transform:scale(.94);} 55%{transform:scale(1.035);} 100%{transform:scale(1);}}
+@keyframes checkPop{0%{transform:scale(0) rotate(-40deg); opacity:0;} 70%{transform:scale(1.2) rotate(6deg); opacity:1;} 100%{transform:scale(1) rotate(0); opacity:1;}}
 .option-btn .sub{display:block; color:var(--muted); font-size:15px; font-weight:500; margin-top:4px;}
 .option-btn.price-opt{display:flex; justify-content:space-between; align-items:center; gap:10px;}
 .option-btn.price-opt .amt{color:var(--blue-light); font-family:var(--serif); font-weight:700; white-space:nowrap;}
+.option-btn.selected{border-color:var(--blue-light); background:linear-gradient(135deg, rgba(var(--blue-rgb),0.26), rgba(var(--blue-rgb),0.10)); box-shadow:0 0 0 1px var(--blue-light) inset, 0 10px 26px -12px rgba(var(--blue-rgb),0.75); padding-right:54px; opacity:1; animation:optPop .28s cubic-bezier(.22,.68,.36,1);}
+.option-btn.selected .sub{color:var(--blue-light);}
+.option-btn.selected::after{content:"✓"; position:absolute; top:50%; right:16px; width:26px; height:26px; margin-top:-13px; border-radius:50%; background:var(--blue-light); color:var(--bg); font-size:15px; font-weight:800; line-height:26px; text-align:center; animation:checkPop .3s cubic-bezier(.22,.68,.36,1) both;}
+.config-next{transition:transform .15s ease, opacity .2s ease, box-shadow .2s ease; -webkit-tap-highlight-color:transparent;}
+.config-next:not(:disabled):active{transform:scale(.96);}
+.config-next:not(:disabled){animation:nextPulse 1.8s ease-in-out infinite;}
+@keyframes nextPulse{0%,100%{box-shadow:0 10px 30px -12px rgba(var(--blue-rgb),0.6);} 50%{box-shadow:0 10px 34px -6px rgba(var(--blue-rgb),0.95);}}
+.config-next:disabled{opacity:0.45; cursor:not-allowed;}
+.config-result .rlist{max-width:420px; margin:10px auto 0; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+.config-result .rrow{display:flex; justify-content:space-between; gap:12px; padding:11px 16px; font-size:17px; color:var(--white); border-bottom:1px solid var(--line); text-align:left;}
+.config-result .rrow:last-child{border-bottom:none;}
+.config-result .rrow-price{color:var(--blue-light); font-weight:600; white-space:nowrap;}
 .option-btn.disabled{opacity:0.45; cursor:not-allowed;}
-.option-btn.disabled:hover{transform:none; border-color:var(--line); background:var(--bg-panel-2);}
+.option-btn.disabled:hover, .option-btn.disabled:active{transform:none; border-color:var(--line); background:var(--bg-panel-2); box-shadow:none;}
 .config-back{display:inline-flex; align-items:center; gap:6px; background:none; border:1px solid var(--line); color:var(--muted); padding:9px 18px; border-radius:999px; font-size:16px; font-weight:600; cursor:pointer; margin-bottom:20px;}
-.config-back:hover{color:var(--white); border-color:var(--blue-dim);}
+.config-back{-webkit-tap-highlight-color:transparent; transition:transform .12s ease, color .15s ease, border-color .15s ease;}
+.config-back:active{transform:scale(.94); color:var(--white); border-color:var(--blue-light);}
+@media (hover:hover){.config-back:hover{color:var(--white); border-color:var(--blue-dim);}}
 .config-empty{text-align:center; color:var(--muted); font-size:17px; padding:20px 0;}
 .config-result{text-align:center;}
 .config-result .rprice{font-family:var(--serif); font-size:43px; font-weight:700; color:var(--blue-light); margin:6px 0 4px;}
@@ -627,8 +649,8 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
 </footer>
 
 <script>
-  const REPAIR_TYPES = ["display", "akku", "ladebuchse", "backcover", "kamera"];
-  const REPAIR_LABELS = { display:"Display", akku:"Akku", ladebuchse:"Ladebuchse", backcover:"Backcover", kamera:"Kamera" };
+  const REPAIR_TYPES = ["display", "akku", "ladebuchse", "backcover", "kamera_front", "kamera_back"];
+  const REPAIR_LABELS = { display:"Display", akku:"Akku", ladebuchse:"Ladebuchse", backcover:"Backcover", kamera_front:"Front-Kamera", kamera_back:"Back-Kamera" };
   /* Modelle, bei denen "Backcover" als Dienstleistung nicht angeboten wird. */
   const NO_BACKCOVER = [
     "iph-8","iph-8p",
@@ -801,7 +823,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     ]
   };
 
-  const state = { step:1, deviceType:null, brand:null, series:null, model:null, repair:null, quality:null };
+  const state = { step:1, deviceType:null, brand:null, series:null, model:null, repairs:[], quality:null };
 
   const STEP_LABELS = ['Gerätetyp','Marke','Serie','Modell','Dienstleistung'];
 
@@ -810,7 +832,8 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     if (step <= 2) { state.brand = null; }
     if (step <= 3) { state.series = null; }
     if (step <= 4) { state.model = null; }
-    if (step <= 5) { state.repair = null; state.quality = null; }
+    if (step <= 4) { state.repairs = []; }
+    if (step <= 6) { state.quality = null; }
     state.step = step;
   }
 
@@ -830,7 +853,7 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       state.brand ? BRANDS.smartphone.find(b => b.id === state.brand).label : null,
       state.series ? SERIES[state.brand].find(s => s.id === state.series).label : null,
       state.model ? findModel(state.model).label : null,
-      state.repair ? REPAIR_LABELS[state.repair] : null
+      state.repairs.length ? state.repairs.map(r => REPAIR_LABELS[r]).join(' + ') : null
     ];
     STEP_LABELS.forEach((label, i) => {
       const stepNum = i + 1;
@@ -847,11 +870,24 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     });
   }
 
-  function optionButton(label, sub, onClick, disabled){
+  function optionButton(label, sub, onClick, disabled, instant){
     const btn = document.createElement('button');
     btn.className = 'option-btn' + (disabled ? ' disabled' : '');
     btn.innerHTML = sub ? `${label}<span class="sub">${sub}</span>` : label;
-    if (!disabled) btn.addEventListener('click', onClick);
+    if (!disabled) {
+      if (instant) {
+        btn.addEventListener('click', onClick);
+      } else {
+        // Navigation: Button leuchtet kurz auf, dann geht es weiter (verhindert Doppeltippen).
+        let busy = false;
+        btn.addEventListener('click', () => {
+          if (busy) return;
+          busy = true;
+          btn.classList.add('tapped');
+          setTimeout(onClick, 140);
+        });
+      }
+    }
     return btn;
   }
 
@@ -861,6 +897,17 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
     btn.textContent = '← Zurück';
     btn.addEventListener('click', () => { resetFrom(state.step - 1); render(); });
     return btn;
+  }
+
+  /* Preis einer gewählten Dienstleistung (null = auf Anfrage). */
+  function repairPrice(m, type){
+    if (type === 'display') return (m.prices.display || {})[state.quality];
+    if (type === 'kamera_front') return (m.prices.kamera || {}).front;
+    if (type === 'kamera_back') return (m.prices.kamera || {}).back;
+    return m.prices[type];
+  }
+  function repairLabel(type){
+    return REPAIR_LABELS[type] + (type === 'display' && state.quality ? ' (' + (state.quality === 'budget' ? 'Budget' : 'Premium') + ')' : '');
   }
 
   function render(){
@@ -949,19 +996,49 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       root.appendChild(backButton());
       const title = document.createElement('h3');
       title.className = 'config-step-title';
-      title.textContent = 'Welche Dienstleistung?';
+      title.textContent = 'Welche Dienstleistungen?';
       root.appendChild(title);
+      const hint = document.createElement('p');
+      hint.className = 'config-empty';
+      hint.style.cssText = 'padding:0; margin:-8px 0 18px;';
+      hint.textContent = 'Du kannst mehrere auswählen, zum Beispiel Akku und Display zusammen.';
+      root.appendChild(hint);
+      const m5 = findModel(state.model);
       const grid = document.createElement('div');
       grid.className = 'option-grid';
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'btn btn-primary config-next';
+      const updateNext = () => {
+        nextBtn.disabled = state.repairs.length === 0;
+        nextBtn.textContent = state.repairs.length > 1 ? `Weiter mit ${state.repairs.length} Reparaturen` : 'Weiter';
+      };
       REPAIR_TYPES.forEach(type => {
         if (type === 'backcover' && NO_BACKCOVER.includes(state.model)) return;
-        grid.appendChild(optionButton(REPAIR_LABELS[type], null, () => {
-          state.repair = type;
-          if (type === 'display') { state.step = 6; } else { state.step = 7; }
-          render();
-        }));
+        const pr = type === 'display' ? null : repairPrice(m5, type);
+        const unavailable = (type === 'kamera_front' || type === 'kamera_back') && (pr === null || pr === undefined);
+        const sub = type === 'display' ? 'Budget oder Premium' : (unavailable ? 'auf Anfrage' : `CHF ${pr}.–`);
+        const btn = optionButton(REPAIR_LABELS[type], sub, () => {
+          const i = state.repairs.indexOf(type);
+          if (i >= 0) state.repairs.splice(i, 1); else state.repairs.push(type);
+          btn.classList.toggle('selected', i < 0);
+          btn.setAttribute('aria-pressed', i < 0 ? 'true' : 'false');
+          updateNext();
+        }, unavailable, true);
+        btn.setAttribute('aria-pressed', state.repairs.includes(type) ? 'true' : 'false');
+        if (state.repairs.includes(type)) btn.classList.add('selected');
+        grid.appendChild(btn);
       });
       root.appendChild(grid);
+      const nextWrap = document.createElement('div');
+      nextWrap.style.cssText = 'display:flex; justify-content:center; margin-top:22px;';
+      nextBtn.addEventListener('click', () => {
+        if (!state.repairs.length) return;
+        state.step = state.repairs.includes('display') ? 6 : 7;
+        render();
+      });
+      updateNext();
+      nextWrap.appendChild(nextBtn);
+      root.appendChild(nextWrap);
       return;
     }
 
@@ -1001,46 +1078,54 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       resultBack.className = 'config-back';
       resultBack.textContent = '← Zurück';
       resultBack.addEventListener('click', () => {
-        resetFrom(state.repair === 'display' ? 6 : 5);
+        resetFrom(state.repairs.includes('display') ? 6 : 5);
         render();
       });
       root.appendChild(resultBack);
       const m = findModel(state.model);
-      const isDisplay = state.repair === 'display';
-      const isKamera = state.repair === 'kamera';
-      let price;
-      if (isDisplay) {
-        price = (m.prices.display || {})[state.quality];
-      } else if (!isKamera) {
-        price = m.prices[state.repair];
-      }
+      const items = state.repairs.map(type => ({ type, label: repairLabel(type), price: repairPrice(m, type) }));
+      const known = items.filter(it => it.price !== undefined && it.price !== null);
+      const allKnown = known.length === items.length;
+      const total = known.reduce((sum, it) => sum + it.price, 0);
+      const fmt = (it) => (it.price !== undefined && it.price !== null ? `CHF ${it.price}.–` : 'auf Anfrage');
       const wrap = document.createElement('div');
       wrap.className = 'config-result';
       const rmeta = document.createElement('div');
       rmeta.className = 'rmeta';
-      rmeta.textContent = `${m.label} · ${REPAIR_LABELS[state.repair]}${isDisplay ? ' (' + (state.quality === 'budget' ? 'Budget' : 'Premium') + ')' : ''}`;
+      rmeta.textContent = m.label;
       wrap.appendChild(rmeta);
-      if (isKamera) {
-        const kp = m.prices.kamera || {};
-        const rpriceDual = document.createElement('div');
-        rpriceDual.className = 'rprice';
-        rpriceDual.style.display = 'flex';
-        rpriceDual.style.justifyContent = 'center';
-        rpriceDual.style.gap = '36px';
-        rpriceDual.style.flexWrap = 'wrap';
-        const frontBox = document.createElement('div');
-        frontBox.innerHTML = `<div style="font-size:16px; color:var(--muted); font-weight:600; margin-bottom:2px;">Front-Kamera</div><div style="font-size:31px;">CHF ${kp.front ?? '–'}.–</div>`;
-        const backBox = document.createElement('div');
-        backBox.innerHTML = `<div style="font-size:16px; color:var(--muted); font-weight:600; margin-bottom:2px;">Back-Kamera</div><div style="font-size:31px;">CHF ${kp.back ?? '–'}.–</div>`;
-        rpriceDual.appendChild(frontBox);
-        rpriceDual.appendChild(backBox);
-        wrap.appendChild(rpriceDual);
+      if (items.length > 1) {
+        const list = document.createElement('div');
+        list.className = 'rlist';
+        items.forEach(it => {
+          const row = document.createElement('div');
+          row.className = 'rrow';
+          const l = document.createElement('span');
+          l.textContent = it.label;
+          const r = document.createElement('span');
+          r.className = 'rrow-price';
+          r.textContent = fmt(it);
+          row.appendChild(l);
+          row.appendChild(r);
+          list.appendChild(row);
+        });
+        wrap.appendChild(list);
+        const tl = document.createElement('div');
+        tl.className = 'rlabel';
+        tl.style.cssText = 'margin:14px 0 0;';
+        tl.textContent = 'Gesamtpreis';
+        wrap.appendChild(tl);
       } else {
-        const rprice = document.createElement('div');
-        rprice.className = 'rprice';
-        rprice.textContent = price !== undefined && price !== null ? `CHF ${price}.–` : 'Preis auf Anfrage';
-        wrap.appendChild(rprice);
+        const one = document.createElement('div');
+        one.className = 'rmeta';
+        one.textContent = items[0].label;
+        wrap.appendChild(one);
       }
+      const rprice = document.createElement('div');
+      rprice.className = 'rprice';
+      rprice.textContent = allKnown ? `CHF ${total}.–` : (known.length ? `ab CHF ${total}.– (Rest auf Anfrage)` : 'Preis auf Anfrage');
+      if (!allKnown && known.length) rprice.style.fontSize = '25px';
+      wrap.appendChild(rprice);
       const rlabel = document.createElement('div');
       rlabel.className = 'rlabel';
       rlabel.textContent = 'inkl. Ersatzteil und Einbau';
@@ -1053,11 +1138,13 @@ footer{border-top:1px solid var(--line); padding:50px 0 30px; background:var(--b
       callBtn.textContent = 'Jetzt anrufen';
       actions.appendChild(callBtn);
       const emailBtn = document.createElement('a');
-      const emailSubject = encodeURIComponent(`Anfrage: ${m.label} – ${REPAIR_LABELS[state.repair]}`);
-      const emailBodyPrice = isKamera
-        ? `Front-Kamera: CHF ${(m.prices.kamera || {}).front ?? '–'}.– / Back-Kamera: CHF ${(m.prices.kamera || {}).back ?? '–'}.–`
-        : (price !== undefined && price !== null ? `Preis: CHF ${price}.–` : 'Preis: auf Anfrage');
-      const emailBody = encodeURIComponent(`Hallo BlueFix\n\nIch interessiere mich für folgende Reparatur:\n\nModell: ${m.label}\nDienstleistung: ${REPAIR_LABELS[state.repair]}${isDisplay ? ' (' + (state.quality === 'budget' ? 'Budget' : 'Premium') + ')' : ''}\n${emailBodyPrice}\n\nBitte meldet euch bei mir.\n\nDanke!`);
+      const names = items.map(it => it.label).join(' + ');
+      const emailSubject = encodeURIComponent(`Anfrage: ${m.label} – ${names}`);
+      const lines = items.map(it => `- ${it.label}: ${fmt(it)}`).join('\n');
+      const totalLine = items.length > 1
+        ? `\nGesamtpreis: ${allKnown ? 'CHF ' + total + '.–' : (known.length ? 'ab CHF ' + total + '.– (Rest auf Anfrage)' : 'auf Anfrage')}`
+        : '';
+      const emailBody = encodeURIComponent(`Hallo BlueFix\n\nIch interessiere mich für folgende ${items.length > 1 ? 'Reparaturen' : 'Reparatur'}:\n\nModell: ${m.label}\n${lines}${totalLine}\n\nBitte meldet euch bei mir.\n\nDanke!`);
       emailBtn.href = `mailto:bluefix.info@gmail.com?subject=${emailSubject}&body=${emailBody}`;
       emailBtn.className = 'btn btn-primary';
       emailBtn.textContent = 'Jetzt E-Mail schreiben';
