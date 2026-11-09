@@ -220,15 +220,23 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         else if (sessSeen || lsGet('bf_chat_started')) { resetChat(); return; }
       }
       sess = d.exists ? d.data() : {};
+      if (sess.humanAt) { aiWaitUntil = 0; aiFailAfter = 0; }
       checkClosed();
       render(); markSeen();
     }, function(){});
     unsubMsgs = sRef.collection('messages').orderBy('ts').onSnapshot(function(snap){
       msgs = snap.docs.map(function(x){ return x.data(); });
       var last = msgs[msgs.length-1];
-      if (last && last.from !== 'visitor') { aiWaitUntil = 0; aiFailAfter = 0; }
+      if ((last && last.from !== 'visitor') || humanTookOver()) { aiWaitUntil = 0; aiFailAfter = 0; }
       render(); markSeen();
     }, function(){});
+  }
+
+  /* Sobald ein Mensch aus dem Team (Jerome, Thierry ...) im Chat geschrieben hat, ist die KI in diesem Chat aus:
+     keine Tipp-Punkte, keine KI-Anfrage, keine Fehlermeldung der KI. */
+  function humanTookOver(){
+    if (sess && sess.humanAt) return true;
+    return msgs.some(function(m){ return m && m.from === 'team' && !m.ai && !m.greeting; });
   }
 
   function resetChat(){
@@ -298,7 +306,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       msgsEl.appendChild(row);
     });
     var lastMsg = msgs[msgs.length-1];
-    var waiting = lastMsg && lastMsg.from === 'visitor';
+    var waiting = lastMsg && lastMsg.from === 'visitor' && !humanTookOver();
     if (waiting && Date.now() < aiWaitUntil) {
       var tr = el('div','bfc-row them bfc-typing'); tr.appendChild(el('div','bfc-who','🤖 BlueFix KI-Assistent'));
       var tb = el('div','bfc-b'); tb.innerHTML = '<i></i><i></i><i></i>'; tr.appendChild(tb); msgsEl.appendChild(tr);
@@ -376,8 +384,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       await batch.commit();
       inp.value = ''; autosize();
       try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }), keepalive:true }).catch(function(){}); } catch(e){}
-      aiFailAfter = 0; aiWaitUntil = Date.now() + 25000; render();
-      askAI(0);
+      if (humanTookOver()) { aiWaitUntil = 0; aiFailAfter = 0; render(); }
+      else { aiFailAfter = 0; aiWaitUntil = Date.now() + 25000; render(); askAI(0); }
       if (isMobileLayout()) { try { inp.focus(); } catch(e){} }
     } catch(e) {
       showErr('Nachricht konnte nicht gesendet werden. Bitte Internetverbindung prüfen – oder ruf uns direkt an.');
