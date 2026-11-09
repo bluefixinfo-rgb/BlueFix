@@ -73,7 +73,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .bfc-note{margin-top:16px; font-size:12px; line-height:1.45; color:#6d7d9c;}
 
 /* Nachrichten */
-.bfc-msgs{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:14px 12px; display:flex; flex-direction:column; gap:8px; background:#0b1322;}
+.bfc-msgs{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:14px 12px; display:flex; flex-direction:column; gap:8px; background:#0b1322;}
 .bfc-sys{align-self:center; font-size:12px; color:#8a99b8; padding:4px 0;}
 .bfc-row{display:flex; flex-direction:column; max-width:82%;}
 .bfc-row.me{align-self:flex-end; align-items:flex-end;}
@@ -96,6 +96,22 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .bfc-send svg{width:20px; height:20px;}
 
 
+/* Antworten auf eine Nachricht (Wischen nach rechts) */
+.bfc-row{position:relative; touch-action:pan-y;}
+.bfc-row.swiping{transition:none;}
+.bfc-row.snap{transition:transform .18s ease-out;}
+.bfc-rep-ico{position:absolute; top:50%; left:-34px; width:26px; height:26px; margin-top:-13px; border-radius:50%; background:#1c2b45; color:#9cc4ff; display:flex; align-items:center; justify-content:center; font-size:15px; opacity:0; transition:opacity .12s; pointer-events:none;}
+.bfc-row.me .bfc-rep-ico{left:-34px;}
+.bfc-rbtn{position:absolute; top:4px; right:-30px; width:24px; height:24px; border:none; border-radius:50%; background:#1c2b45; color:#9cc4ff; font-size:14px; cursor:pointer; opacity:0; transition:opacity .12s; display:none;}
+.bfc-row.me .bfc-rbtn{right:auto; left:-30px;}
+@media (hover:hover){ .bfc-rbtn{display:block;} .bfc-row:hover .bfc-rbtn{opacity:1;} }
+.bfc-quote{border-left:3px solid #4a9cff; padding:4px 8px; margin:0 0 6px; font-size:12.5px; line-height:1.3; border-radius:6px; background:rgba(11,19,34,.08); max-height:3.9em; overflow:hidden; white-space:normal;}
+.bfc-quote b{display:block; font-size:11px; opacity:.8; margin-bottom:1px;}
+.bfc-row.me .bfc-quote{border-left-color:#fff; background:rgba(255,255,255,.16);}
+.bfc-replybar{flex:none; display:none; align-items:center; gap:10px; padding:8px 12px; background:#0d1a2e; border-top:1px solid #1c2b45; color:#c7d3ea; font-size:13px;}
+.bfc-replybar .t{flex:1; min-width:0; border-left:3px solid #4a9cff; padding-left:8px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;}
+.bfc-replybar .t b{display:block; font-size:11px; color:#8a99b8; font-weight:600;}
+.bfc-replybar button{background:none; border:none; color:#8a99b8; font-size:22px; line-height:1; cursor:pointer; padding:2px 6px;}
 .bfc-typing .bfc-b{display:flex; gap:5px; align-items:center; padding:13px 16px;}
 .bfc-typing i{width:7px; height:7px; border-radius:50%; background:#8a99b8; animation:bfDot 1.2s infinite ease-in-out;}
 .bfc-typing i:nth-child(2){animation-delay:.18s;} .bfc-typing i:nth-child(3){animation-delay:.36s;}
@@ -133,6 +149,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     <div class="bfc-view" id="bfcChatView" hidden>
       <div class="bfc-msgs" id="bfcMsgs" aria-live="polite"></div>
       <div class="bfc-err" id="bfcErr" role="alert"></div>
+      <div class="bfc-replybar" id="bfcReplyBar"><div class="t" id="bfcReplyTxt"></div><button type="button" id="bfcReplyX" aria-label="Antwort abbrechen">×</button></div>
       <div class="bfc-in">
         <textarea id="bfcIn" rows="1" maxlength="1000" placeholder="Nachricht schreiben …" aria-label="Nachricht" enterkeyhint="send"></textarea>
         <button class="bfc-send" id="bfcSend" type="button" aria-label="Senden" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
@@ -173,7 +190,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       gate=$('bfcGate'), chatView=$('bfcChatView'), gateForm=$('bfcGateForm'), nameIn=$('bfcNameIn'), lastIn=$('bfcLastIn'), gateErr=$('bfcGateErr');
 
   var db=null, sRef=null, unsubMsgs=null, unsubSess=null, initPromise=null;
-  var sessSeen=false, msgs=[], sess={}, lastSend=0, aiWaitUntil=0, aiTimer=null, aiFailAfter=0;
+  var sessSeen=false, msgs=[], sess={}, lastSend=0, aiWaitUntil=0, aiTimer=null, aiFailAfter=0, aiInflight=0, aiRecheck=0, replyTo=null;
   var sending=false;
 
   var LETTER; try { LETTER = new RegExp('\\p{L}','u'); } catch(e){ LETTER = /[A-Za-zÀ-ɏ]/; }
@@ -227,7 +244,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     unsubMsgs = sRef.collection('messages').orderBy('ts').onSnapshot(function(snap){
       msgs = snap.docs.map(function(x){ return x.data(); });
       var last = msgs[msgs.length-1];
-      if ((last && last.from !== 'visitor') || humanTookOver()) { aiWaitUntil = 0; aiFailAfter = 0; }
+      if (!hasOpen() || humanTookOver()) { aiWaitUntil = 0; aiFailAfter = 0; }
       render(); markSeen();
     }, function(){});
   }
@@ -240,13 +257,74 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
     return msgs.some(function(m){ return m && m.from === 'team' && !m.ai && !m.greeting && (m.ts || 0) > resume; });
   }
 
+  /* Bis zu welcher Kundennachricht hat die KI gelesen? Schreibt der Kunde, während die KI tippt,
+     bleibt die neue Nachricht offen und die KI beantwortet sie danach. */
+  function aiUpTo(){
+    var mx = 0;
+    msgs.forEach(function(m){ if (m && m.from === 'team' && m.ai) mx = Math.max(mx, m.upTo || m.ts || 0); });
+    return mx;
+  }
+  function hasOpen(){
+    var up = aiUpTo();
+    return msgs.some(function(m){ return m && m.from === 'visitor' && (m.ts || 0) > up; });
+  }
+  function lastVisitorTs(){
+    var mx = 0; msgs.forEach(function(m){ if (m && m.from === 'visitor') mx = Math.max(mx, m.ts || 0); }); return mx;
+  }
+
+  /* ---- Antworten auf eine Nachricht ---- */
+  var replyBar = $('bfcReplyBar'), replyTxt = $('bfcReplyTxt');
+  function whoOf(m){ return m.from === 'visitor' ? 'Du' : (m.ai ? 'BlueFix KI-Assistent' : (m.agent || 'BlueFix')); }
+  function setReply(m){
+    if (!m || !String(m.text || '').trim()) return;
+    replyTo = { text: String(m.text).replace(/\s+/g, ' ').trim().slice(0, 200), from: m.from === 'visitor' ? 'visitor' : 'team', who: whoOf(m) };
+    replyTxt.innerHTML = '';
+    var b = document.createElement('b'); b.textContent = 'Antwort an ' + replyTo.who;
+    replyTxt.appendChild(b); replyTxt.appendChild(document.createTextNode(replyTo.text));
+    replyBar.style.display = 'flex';
+    try { inp.focus(); } catch(e){}
+  }
+  function clearReply(){ replyTo = null; replyBar.style.display = 'none'; replyTxt.textContent = ''; }
+  $('bfcReplyX').addEventListener('click', clearReply);
+
+  /* Wischen nach rechts = auf diese Nachricht antworten */
+  function attachSwipe(row, m){
+    var sx = 0, sy = 0, dx = 0, mode = '', ico = null;
+    row.addEventListener('touchstart', function(e){
+      if (e.touches.length !== 1) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; mode = '';
+      row.classList.remove('snap'); row.classList.add('swiping');
+    }, { passive: true });
+    row.addEventListener('touchmove', function(e){
+      var t = e.touches[0], ddx = t.clientX - sx, ddy = t.clientY - sy;
+      if (!mode) {
+        if (Math.abs(ddx) > 8 && Math.abs(ddx) > Math.abs(ddy) * 1.5) mode = 'h';
+        else if (Math.abs(ddy) > 8) mode = 'v';
+      }
+      if (mode !== 'h') return;
+      dx = Math.max(0, Math.min(ddx, 90));
+      row.style.transform = 'translateX(' + dx * 0.8 + 'px)';
+      if (!ico) ico = row.querySelector('.bfc-rep-ico');
+      if (ico) ico.style.opacity = dx > 25 ? Math.min(1, (dx - 25) / 30) : 0;
+    }, { passive: true });
+    function end(){
+      row.classList.remove('swiping'); row.classList.add('snap');
+      row.style.transform = '';
+      if (ico) ico.style.opacity = 0;
+      if (mode === 'h' && dx >= 55) { try { navigator.vibrate && navigator.vibrate(12); } catch(e){} setReply(m); }
+      mode = ''; dx = 0;
+    }
+    row.addEventListener('touchend', end);
+    row.addEventListener('touchcancel', end);
+  }
+
   function resetChat(){
     if (unsubSess) { unsubSess(); unsubSess = null; }
     if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
     ['bf_chat_started','bf_chat_name','bf_chat_open_ping'].forEach(lsDel);
     sid = newSid(); lsSet('bf_chat_sid', sid); short = sid.slice(0,4).toUpperCase();
     sRef = db.collection('livechat_sessions').doc(sid);
-    msgs = []; sess = {}; sessSeen = false; aiWaitUntil = 0; aiFailAfter = 0; clearTimeout(aiTimer);
+    msgs = []; sess = {}; sessSeen = false; aiWaitUntil = 0; aiFailAfter = 0; aiInflight = 0; aiRecheck = 0; clearReply(); clearTimeout(aiTimer);
     inp.value = ''; autosize(); try { gateForm.reset(); nameIn.blur(); lastIn.blur(); } catch(e){} nameIn.value = ''; lastIn.value = ''; gateErr.textContent = ''; showErr('');
     showView(); render(); updateSend();
     listen();
@@ -300,20 +378,33 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
       var me = m.from === 'visitor';
       var row = el('div','bfc-row ' + (me ? 'me' : 'them'));
       if (!me) row.appendChild(el('div','bfc-who', m.ai ? '🤖 BlueFix KI-Assistent' : ((m.agent || 'BlueFix') + ' | BlueFix Team')));
-      row.appendChild(bubble(m.text));
+      var bb = bubble(m.text);
+      if (m.replyText) {
+        var q = el('div','bfc-quote'); q.appendChild(el('b', null, m.replyFrom === 'visitor' ? 'Du' : (m.replyWho || 'BlueFix')));
+        q.appendChild(document.createTextNode(String(m.replyText)));
+        bb.insertBefore(q, bb.firstChild);
+      }
+      row.appendChild(el('div','bfc-rep-ico','↩'));
+      row.appendChild(bb);
+      (function(mm){
+        var rb = el('button','bfc-rbtn','↩'); rb.type = 'button'; rb.title = 'Antworten';
+        rb.addEventListener('click', function(){ setReply(mm); });
+        row.appendChild(rb);
+        attachSwipe(row, mm);
+      })(m);
       var meta = hm(m.ts);
       if (me && i === lastMe) meta += (sess.teamReadAt && sess.teamReadAt >= m.ts) ? ' · ✓✓ Gelesen' : ' · ✓ Gesendet';
       row.appendChild(el('div','bfc-meta',meta));
       msgsEl.appendChild(row);
     });
     var lastMsg = msgs[msgs.length-1];
-    var waiting = lastMsg && lastMsg.from === 'visitor' && !humanTookOver();
+    var waiting = lastMsg && hasOpen() && !humanTookOver();
     if (waiting && Date.now() < aiWaitUntil) {
       var tr = el('div','bfc-row them bfc-typing'); tr.appendChild(el('div','bfc-who','🤖 BlueFix KI-Assistent'));
       var tb = el('div','bfc-b'); tb.innerHTML = '<i></i><i></i><i></i>'; tr.appendChild(tb); msgsEl.appendChild(tr);
       nearBottom = true;
       clearTimeout(aiTimer); aiTimer = setTimeout(render, Math.max(200, aiWaitUntil - Date.now() + 50));
-    } else if (waiting && aiFailAfter && lastMsg.ts <= aiFailAfter) {
+    } else if (waiting && aiFailAfter && lastVisitorTs() <= aiFailAfter) {
       /* KI konnte nicht antworten -> der Kunde bleibt nie ohne Rueckmeldung */
       var fr = el('div','bfc-row them'); fr.appendChild(el('div','bfc-who','BlueFix'));
       fr.appendChild(el('div','bfc-b',AI_FAIL_TEXT)); msgsEl.appendChild(fr);
@@ -345,20 +436,32 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
   }
 
   /* KI-Funktion aufrufen. Bei Fehler einmal wiederholen; klappt es gar nicht, kommt die Hinweis-Nachricht. */
+  function afterAi(){
+    setTimeout(function(){
+      if (aiInflight > 0) return;   /* eine weitere Anfrage läuft noch: Punkte bleiben */
+      if (hasOpen() && !humanTookOver() && aiRecheck < 2) {
+        /* Der Kunde hat während des Tippens weitergeschrieben: noch offen -> nochmals anfragen */
+        aiRecheck++; aiWaitUntil = Date.now() + 25000; render(); askAI(0); return;
+      }
+      aiWaitUntil = 0; render();
+    }, 1500);
+  }
   function askAI(attempt){
-    var sentAt = Date.now();
+    aiInflight++;
     return fetch(AI_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid, name: getName() }) })
       .then(function(r){
         return r.json().catch(function(){ return {}; }).then(function(j){ return { status:r.status, j:j || {} }; });
       })
       .then(function(o){
         if (o.status >= 400 || (o.j && o.j.ok === false)) { try { console.warn('[BlueFix KI]', o.status, o.j); } catch(e){} throw new Error('ai ' + o.status); }
-        if (o.j && o.j.ok) setTimeout(function(){ aiWaitUntil = 0; render(); }, 1500);
-        else { aiWaitUntil = 0; render(); } /* z.B. Mitarbeiter hat uebernommen */
+        aiInflight = Math.max(0, aiInflight - 1);
+        afterAi();
       })
       .catch(function(){
+        aiInflight = Math.max(0, aiInflight - 1);
         if (attempt < 1) { return new Promise(function(r){ setTimeout(r, 1500); }).then(function(){ return askAI(attempt + 1); }); }
-        aiWaitUntil = 0; aiFailAfter = Date.now() + 5000; render();
+        if (aiInflight <= 0) { aiWaitUntil = 0; aiFailAfter = Date.now() + 5000; }
+        render();
       });
   }
 
@@ -381,10 +484,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
         unreadTeam: firebase.firestore.FieldValue.increment(1),
         page: 'chat'
       }, { merge:true });
-      batch.set(sRef.collection('messages').doc(), { from:'visitor', text: text, ts: now });
+      var mdoc = { from:'visitor', text: text, ts: now };
+      if (replyTo) { mdoc.replyText = replyTo.text; mdoc.replyFrom = replyTo.from; mdoc.replyWho = replyTo.who; }
+      batch.set(sRef.collection('messages').doc(), mdoc);
       await batch.commit();
-      inp.value = ''; autosize();
+      inp.value = ''; autosize(); clearReply();
       try { fetch(NOTIFY_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ sid: sid }), keepalive:true }).catch(function(){}); } catch(e){}
+      aiRecheck = 0;
       if (humanTookOver()) { aiWaitUntil = 0; aiFailAfter = 0; render(); }
       else { aiFailAfter = 0; aiWaitUntil = Date.now() + 25000; render(); askAI(0); }
       if (isMobileLayout()) { try { inp.focus(); } catch(e){} }
