@@ -236,7 +236,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
      keine Tipp-Punkte, keine KI-Anfrage, keine Fehlermeldung der KI. */
   function humanTookOver(){
     if (sess && sess.humanAt) return true;
-    return msgs.some(function(m){ return m && m.from === 'team' && !m.ai && !m.greeting; });
+    var resume = (sess && sess.aiResumeAt) || 0;
+    return msgs.some(function(m){ return m && m.from === 'team' && !m.ai && !m.greeting && (m.ts || 0) > resume; });
   }
 
   function resetChat(){
