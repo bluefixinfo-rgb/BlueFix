@@ -39,6 +39,12 @@ input[type=text],input[type=tel],input[type=email]{
 input::placeholder{color:rgba(190,205,240,.45)}
 input:focus{border-color:var(--accent2);box-shadow:0 0 0 4px rgba(59,130,246,.22)}
 input.bad{border-color:var(--err)}
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,input:-webkit-autofill:active{
+  -webkit-text-fill-color:var(--text);caret-color:var(--text);
+  -webkit-box-shadow:0 0 0 1000px #172a5c inset;box-shadow:0 0 0 1000px #172a5c inset;
+  transition:background-color 600000s 0s,color 600000s 0s;
+}
+input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px #172a5c inset,0 0 0 4px rgba(59,130,246,.22);box-shadow:0 0 0 1000px #172a5c inset,0 0 0 4px rgba(59,130,246,.22)}
 .hint{font-size:12.5px;color:var(--muted);margin:7px 2px 0;opacity:.85}
 .pay{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .pay input{position:absolute;opacity:0;pointer-events:none}
@@ -70,19 +76,19 @@ button.send:disabled{opacity:.6}
       <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Kundendaten &amp; Gerät</h2>
 
       <label for="vorname">Vorname</label>
-      <input id="vorname" type="text" placeholder="z.B. Max" autocomplete="given-name" required>
+      <input id="vorname" type="text" spellcheck="false" autocorrect="off" placeholder="z.B. Max" autocomplete="given-name" required>
 
       <label for="nachname">Nachname</label>
-      <input id="nachname" type="text" placeholder="z.B. Muster" autocomplete="family-name" required>
+      <input id="nachname" type="text" spellcheck="false" autocorrect="off" placeholder="z.B. Muster" autocomplete="family-name" required>
 
-      <label for="handy">Handynummer <i>(optional, für die Status-Nachricht)</i></label>
-      <input id="handy" type="tel" inputmode="tel" placeholder="z.B. 079 123 45 67" autocomplete="tel">
+      <label for="handy">Handynummer</label>
+      <input id="handy" type="tel" inputmode="tel" placeholder="z.B. 079 123 45 67" autocomplete="tel" required>
 
-      <label for="email">E-Mail <i>(optional)</i></label>
-      <input id="email" type="email" inputmode="email" placeholder="z.B. max@muster.ch" autocomplete="email">
+      <label for="email">E-Mail</label>
+      <input id="email" type="email" inputmode="email" placeholder="z.B. max@muster.ch" autocomplete="email" spellcheck="false" autocorrect="off" autocapitalize="none" required>
 
       <label for="modell">Modell</label>
-      <input id="modell" type="text" placeholder="z.B. iPhone 13 Pro" required>
+      <input id="modell" type="text" spellcheck="false" autocorrect="off" placeholder="z.B. iPhone 13 Pro" required>
 
       <label for="imei">IMEI-Nummer</label>
       <input id="imei" type="text" inputmode="numeric" maxlength="15" placeholder="z.B. 356789012345678" required>
@@ -141,7 +147,7 @@ document.querySelectorAll('input[name=zahlung]').forEach(r => r.addEventListener
   $('paynote').textContent = notes[r.value]; $('paynote').style.display = 'block'; $('payerr').style.display = 'none';
 }));
 $('imei').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, ''));
-['vorname','nachname','modell','imei'].forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('bad')));
+['vorname','nachname','handy','email','modell','imei'].forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('bad')));
 
 $('form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -149,11 +155,12 @@ $('form').addEventListener('submit', async e => {
   let ok = true;
   ['vorname','nachname','modell'].forEach(id => { if (!$(id).value.trim()) { $(id).classList.add('bad'); ok = false; } });
   if ($('imei').value.length < 14) { $('imei').classList.add('bad'); ok = false; }
+  if ($('handy').value.replace(/\D/g, '').length < 9) { $('handy').classList.add('bad'); ok = false; }
   const mail = $('email').value.trim();
-  if (mail && !/^\S+@\S+\.\S+$/.test(mail)) { $('email').classList.add('bad'); ok = false; }
+  if (!/^\S+@\S+\.\S+$/.test(mail)) { $('email').classList.add('bad'); ok = false; }
   const z = document.querySelector('input[name=zahlung]:checked');
   if (!z) { $('payerr').style.display = 'block'; ok = false; }
-  if (!ok) { document.querySelector('.bad, #payerr[style*=block]')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  if (!ok) { $('generr').textContent = 'Bitte fülle alle Felder korrekt aus.'; $('generr').style.display = 'block'; document.querySelector('.bad, #payerr[style*=block]')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
 
   const data = {
     vorname: $('vorname').value.trim(), nachname: $('nachname').value.trim(),
