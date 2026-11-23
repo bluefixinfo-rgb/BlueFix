@@ -52,6 +52,7 @@ input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px #172a5c inset,0 0 0
 .pay label span{display:block;font-size:24px;margin-bottom:6px}
 .pay input:checked+label{border-color:var(--accent2);background:linear-gradient(160deg,rgba(59,130,246,.55),rgba(29,78,216,.45));box-shadow:0 6px 18px rgba(59,130,246,.3)}
 .pay input:focus-visible+label{box-shadow:0 0 0 4px rgba(59,130,246,.35)}
+.pay.two{grid-template-columns:repeat(2,1fr)}
 .paynote{display:none;margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(59,130,246,.14);border:1px solid rgba(110,150,255,.25);font-size:13.5px;color:#cfdcff;line-height:1.45}
 .err{color:var(--err);font-size:13px;margin:8px 2px 0;display:none}
 button.send{width:100%;padding:18px;border:0;border-radius:14px;font:700 17px 'Space Grotesk',sans-serif;color:#fff;background:linear-gradient(135deg,#3b82f6,#1d4ed8);box-shadow:0 8px 22px rgba(59,130,246,.35);cursor:pointer;transition:transform .12s,opacity .2s}
@@ -96,6 +97,16 @@ button.send:disabled{opacity:.6}
     </div>
 
     <div class="card">
+      <h2 style="margin-bottom:14px">📦 Wie bekommen wir dein Gerät?</h2>
+      <div class="pay two">
+        <div><input type="radio" name="abgabe" id="a-post" value="Per Post"><label for="a-post"><span>📮</span>Per Post schicken</label></div>
+        <div><input type="radio" name="abgabe" id="a-hand" value="Vorbeibringen"><label for="a-hand"><span>🏠</span>Vorbeibringen</label></div>
+      </div>
+      <div class="paynote" id="abgnote"></div>
+      <div class="err" id="abgerr">Bitte wähle, wie wir dein Gerät bekommen.</div>
+    </div>
+
+    <div class="card">
       <h2 style="margin-bottom:14px">💳 Wie möchtest du zahlen?</h2>
       <div class="pay">
         <div><input type="radio" name="zahlung" id="z-bar" value="Bar"><label for="z-bar"><span>💵</span>Bar</label></div>
@@ -115,6 +126,7 @@ button.send:disabled{opacity:.6}
     <div class="check">✓</div>
     <h1>Danke, <span id="dname"></span>!</h1>
     <p class="sub">Dein Auftrag ist bei uns angekommen. Wir melden uns, sobald es Neuigkeiten gibt.</p>
+    <p class="sub" id="doneAbg" style="display:none;margin-top:10px"></p>
   </div>
 </div>
 
@@ -146,6 +158,11 @@ const notes = {
 document.querySelectorAll('input[name=zahlung]').forEach(r => r.addEventListener('change', () => {
   $('paynote').textContent = notes[r.value]; $('paynote').style.display = 'block'; $('payerr').style.display = 'none';
 }));
+const abNotes = {
+  "Per Post": "Du bekommst von uns die Adresse, an die du dein Gerät schicken kannst. Wir melden uns dazu bei dir.",
+  "Vorbeibringen": "Wir melden uns bei dir, um einen Termin zum Vorbeibringen abzumachen."
+};
+document.querySelectorAll('input[name=abgabe]').forEach(r => r.addEventListener('change', () => { $('abgerr').style.display = 'none'; $('abgnote').textContent = abNotes[r.value]; $('abgnote').style.display = 'block'; }));
 $('imei').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, ''));
 ['vorname','nachname','handy','email','modell','imei'].forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('bad')));
 
@@ -159,20 +176,23 @@ $('form').addEventListener('submit', async e => {
   const mail = $('email').value.trim();
   if (!/^\S+@\S+\.\S+$/.test(mail)) { $('email').classList.add('bad'); ok = false; }
   const z = document.querySelector('input[name=zahlung]:checked');
+  const ab = document.querySelector('input[name=abgabe]:checked');
+  if (!ab) { $('abgerr').style.display = 'block'; ok = false; }
   if (!z) { $('payerr').style.display = 'block'; ok = false; }
-  if (!ok) { $('generr').textContent = 'Bitte fülle alle Felder korrekt aus.'; $('generr').style.display = 'block'; document.querySelector('.bad, #payerr[style*=block]')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  if (!ok) { $('generr').textContent = 'Bitte fülle alle Felder korrekt aus.'; $('generr').style.display = 'block'; document.querySelector('.bad, #abgerr[style*=block], #payerr[style*=block]')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
 
   const data = {
     vorname: $('vorname').value.trim(), nachname: $('nachname').value.trim(),
     handy: $('handy').value.trim(), email: mail,
     modell: $('modell').value.trim(), imei: $('imei').value.trim(),
-    zahlungsart: z.value, typ: "formular", status: "neu", at: Date.now()
+    abgabe: ab.value, zahlungsart: z.value, typ: "formular", status: "neu", at: Date.now()
   };
   const btn = $('sendBtn'); btn.disabled = true; btn.textContent = "Wird gesendet…";
   try {
     if (!db) throw new Error("not-configured");
     await db.collection(COLLECTION).add(data);
     $('dname').textContent = data.vorname;
+    if (ab.value === 'Per Post') { $('doneAbg').textContent = 'Du bekommst von uns die Adresse, an die du dein Gerät schicken kannst.'; $('doneAbg').style.display = 'block'; }
     $('form').style.display = 'none'; $('done').style.display = 'block'; window.scrollTo({top:0,behavior:'smooth'});
   } catch (err) {
     console.error(err);
