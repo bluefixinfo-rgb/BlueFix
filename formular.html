@@ -228,6 +228,28 @@ msBoxes.forEach(b=>b.addEventListener('change',()=>{
   msUpdate();
   if(b.checked&&b.value==='Sonstiges')setTimeout(()=>$('sonst').focus({preventScroll:false}),60);
 }));
+
+/* Modell-abhängige Reparaturen (aus der Preisliste der Homepage): nicht angebotene Reparaturen werden ausgeblendet */
+const NA = {"iphonese2020": [], "sese2020": [], "iphonese2022": [], "sese2022": [], "iphone8": ["Backcover"], "iphone8plus": ["Backcover"], "iphonex": ["Backcover"], "iphonexs": ["Backcover"], "iphonexsmax": ["Backcover"], "iphonexr": ["Backcover"], "iphone11": ["Backcover"], "iphone11pro": ["Backcover"], "iphone11promax": ["Backcover"], "iphone12": ["Backcover"], "iphone12mini": ["Backcover"], "iphone12pro": ["Backcover"], "iphone12promax": ["Backcover"], "iphone13": ["Backcover"], "iphone13mini": ["Backcover"], "iphone13pro": ["Backcover"], "iphone13promax": ["Backcover"], "iphone14pro": ["Backcover"], "iphone14promax": ["Backcover"], "iphone16e": ["Kamera vorne"], "iphone17air": ["Kamera vorne", "Kamera hinten"]};
+const AF = {"a05": ["Display Budget", "Display Premium"], "a05s": ["Display Budget", "Display Premium"], "a06": ["Display Budget", "Display Premium"], "a13": ["Display Budget", "Display Premium"], "a14": ["Display Budget", "Display Premium"], "a15": ["Display Budget", "Display Premium"], "a16": ["Display Budget", "Display Premium"], "a17": ["Display Budget", "Display Premium"], "a22": ["Display Budget", "Display Premium"], "a23": ["Display Budget", "Display Premium"], "a24": ["Display Budget", "Display Premium"], "a25": ["Display Budget", "Display Premium"], "a26": ["Display Budget", "Display Premium"], "a32": ["Display Budget", "Display Premium"], "a33": ["Display Budget", "Display Premium"], "a34": ["Display Budget", "Display Premium"], "a35": ["Display Budget", "Display Premium"], "a36": ["Display Budget", "Display Premium"], "a37": ["Display Budget", "Display Premium"], "a42": ["Display Budget", "Display Premium"], "a52": ["Display Budget", "Display Premium"], "a52s": ["Display Budget", "Display Premium"], "a53": ["Display Budget", "Display Premium"], "a54": ["Display Budget", "Display Premium"], "a55": ["Display Budget", "Display Premium"], "a56": ["Display Budget", "Display Premium"], "a57": ["Display Budget", "Display Premium"], "a72": ["Display Budget", "Display Premium"], "a73": ["Display Budget", "Display Premium"]}; /* nur auf Anfrage */
+const normModel = s => s.toLowerCase().replace(/\+/g,'plus').replace(/apple|samsung|galaxy/g,'').replace(/[^a-z0-9]/g,'').replace(/5g$/,'');
+function applyModel(){
+  const key = normModel($('modell').value);
+  const na = NA[key] || [], af = AF[key] || [];
+  msBoxes.forEach(b=>{
+    const sb = b.closest('label').querySelector('.sb');
+    if(sb){ if(sb.dataset.orig===undefined) sb.dataset.orig = sb.textContent; sb.textContent = af.includes(b.value) ? 'auf Anfrage' : sb.dataset.orig; }
+    const hide = na.includes(b.value);
+    b.closest('label').style.display = hide ? 'none' : '';
+    if(hide && b.checked) b.checked = false;
+  });
+  let n = $('naNote');
+  if(!n){ n = document.createElement('p'); n.id='naNote'; n.className='hint'; $('rcount').after(n); }
+  n.textContent = na.length ? 'Für dein Modell nicht verfügbar: ' + na.join(', ').replace('Display Budget, Display Premium','Display') + '.' : '';
+  msUpdate();
+}
+$('modell').addEventListener('input', applyModel);
+applyModel();
 $('sonst').addEventListener('input',()=>$('sonst').classList.remove('bad'));
 (function(){
   const pad=n=>String(n).padStart(2,'0'), t=new Date();
