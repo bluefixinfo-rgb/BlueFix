@@ -140,7 +140,8 @@ h2 svg.hi{margin-right:0;width:24px;height:24px}
       <input id="nachname" type="text" spellcheck="false" autocorrect="off" placeholder="z.B. Muster" autocomplete="family-name" required>
 
       <label for="handy">Handynummer</label>
-      <input id="handy" type="tel" inputmode="tel" placeholder="z.B. 079 123 45 67" autocomplete="tel" required>
+      <input id="handy" type="tel" inputmode="tel" placeholder="z.B. 079 123 45 67 oder +41 79 123 45 67" autocomplete="tel" required>
+      <div class="err" id="handyerr">Bitte gib eine Nummer ein, die mit +41 oder 0 beginnt.</div>
 
       <label for="email">E-Mail</label>
       <input id="email" type="email" inputmode="email" placeholder="z.B. max@muster.ch" autocomplete="email" spellcheck="false" autocorrect="off" autocapitalize="none" required>
@@ -199,7 +200,7 @@ h2 svg.hi{margin-right:0;width:24px;height:24px}
       <h2 style="margin-bottom:6px"><svg class="hi" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16.2V5.5A2.5 2.5 0 0 1 5.5 3h10.7a2.5 2.5 0 0 1 1.8.7l11 11a2.5 2.5 0 0 1 0 3.5l-9.6 9.6a2.5 2.5 0 0 1-3.5 0l-11-11A2.5 2.5 0 0 1 3 16.2z" fill="url(#gGold)" stroke="#a66f00" stroke-width=".8" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.3" fill="#fff" stroke="#a66f00" stroke-width=".6"/></svg> Rabattcode</h2>
       <p class="sub" style="margin-bottom:4px">Optional. Hast du einen Code, gib ihn hier ein.</p>
       <label for="rabatt" style="margin-top:12px">Dein Code <i>(optional)</i></label>
-      <input id="rabatt" type="text" spellcheck="false" autocorrect="off" autocapitalize="characters" autocomplete="off" maxlength="7" placeholder="z.B. BL-AB12">
+      <input id="rabatt" type="text" spellcheck="false" autocorrect="off" autocapitalize="characters" autocomplete="off" maxlength="30" placeholder="z.B. BLUE10">
       <div class="rmsg" id="rabattMsg" aria-live="polite"></div>
       <p class="hint">Noch keinen Code? Hol dir einen auf <a href="https://blue-fix.ch/newsletter" target="_blank" rel="noopener">blue-fix.ch/newsletter</a>.</p>
     </div>
@@ -217,13 +218,6 @@ h2 svg.hi{margin-right:0;width:24px;height:24px}
   </div>
 </div>
 
-<script>
-/* Adresszeile aufräumen: ".html" bzw. "/index.html" nicht anzeigen */
-try{
-  var pth=location.pathname, np=pth.replace(/\/index\.html$/,'/').replace(/\.html$/,'');
-  if(np!==pth && np) history.replaceState(null,'',np+location.search+location.hash);
-}catch(e){}
-</script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <script>
@@ -346,29 +340,23 @@ async function checkRabatt(){
   return rabatt;
 }
 let rabattTimer;
-function fmtRabatt(v, deleting){
-  const n = String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if (n.startsWith('BL')){ const rest = n.slice(2,6); return (deleting && !rest) ? n : 'BL-' + rest; }
-  return n.slice(0,4);
-}
-$('rabatt').addEventListener('input', e => {
-  const del = !!(e && e.inputType && e.inputType.startsWith('delete'));
-  const f = fmtRabatt($('rabatt').value, del);
-  if (f !== $('rabatt').value) $('rabatt').value = f;
+$('rabatt').addEventListener('input', () => {
   rabatt.state = 'idle'; rabattMsg(''); clearTimeout(rabattTimer);
   if ($('rabatt').value.trim().length >= 4) rabattTimer = setTimeout(checkRabatt, 600);
 });
 $('rabatt').addEventListener('blur', () => { clearTimeout(rabattTimer); if ($('rabatt').value.trim()) checkRabatt(); });
 $('imei').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, ''));
 ['vorname','nachname','handy','email','modell','imei'].forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('bad')));
+$('handy').addEventListener('input', () => { $('handyerr').style.display = 'none'; });
 
 $('form').addEventListener('submit', async e => {
   e.preventDefault();
-  $('generr').style.display = 'none';
+  $('generr').style.display = 'none'; $('handyerr').style.display = 'none';
   let ok = true;
   ['vorname','nachname','modell'].forEach(id => { if (!$(id).value.trim()) { $(id).classList.add('bad'); ok = false; } });
   if ($('imei').value.length < 14) { $('imei').classList.add('bad'); ok = false; }
-  if ($('handy').value.replace(/\D/g, '').length < 9) { $('handy').classList.add('bad'); ok = false; }
+  const tel = $('handy').value.replace(/[\s().\-\/]/g, '');
+  if (!/^(\+41|0041|0)\d{9}$/.test(tel)) { $('handy').classList.add('bad'); $('handyerr').style.display = 'block'; ok = false; }
   const mail = $('email').value.trim();
   if (!/^\S+@\S+\.\S+$/.test(mail)) { $('email').classList.add('bad'); ok = false; }
   const reps = msSel();
