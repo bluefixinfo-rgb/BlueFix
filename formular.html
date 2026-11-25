@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#050a16">
 <meta name="color-scheme" content="dark">
 <title>BlueFix – Reparaturauftrag</title>
+<link rel="canonical" href="https://blue-fix.ch/formular">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
@@ -96,6 +97,12 @@ textarea.bad{border-color:var(--err)}
 svg.hi{width:22px;height:22px;flex:none;vertical-align:-5px;margin-right:6px;color:inherit;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
 h2 svg.hi{margin-right:0;width:24px;height:24px}
 .tile.wide .ico svg{width:30px;height:30px}
+.hint a,.rabatt-link{color:var(--accent2);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+#rabatt.ok{border-color:var(--ok)}
+.rmsg{font-size:13px;margin:8px 2px 0;min-height:0}
+.rmsg:empty{display:none}
+#rabatt{text-transform:uppercase;letter-spacing:.06em}
+#rabatt::placeholder{text-transform:none;letter-spacing:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -186,6 +193,15 @@ h2 svg.hi{margin-right:0;width:24px;height:24px}
       </div>
       <div class="paynote" id="paynote"></div>
       <div class="err" id="payerr">Bitte wähle eine Zahlungsart.</div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:6px"><svg class="hi" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16.2V5.5A2.5 2.5 0 0 1 5.5 3h10.7a2.5 2.5 0 0 1 1.8.7l11 11a2.5 2.5 0 0 1 0 3.5l-9.6 9.6a2.5 2.5 0 0 1-3.5 0l-11-11A2.5 2.5 0 0 1 3 16.2z" fill="url(#gGold)" stroke="#a66f00" stroke-width=".8" stroke-linejoin="round"/><circle cx="10" cy="10" r="2.3" fill="#fff" stroke="#a66f00" stroke-width=".6"/></svg> Rabattcode</h2>
+      <p class="sub" style="margin-bottom:4px">Optional. Hast du einen Code, gib ihn hier ein.</p>
+      <label for="rabatt" style="margin-top:12px">Dein Code <i>(optional)</i></label>
+      <input id="rabatt" type="text" spellcheck="false" autocorrect="off" autocapitalize="characters" autocomplete="off" maxlength="30" placeholder="z.B. BLUE10">
+      <div class="rmsg" id="rabattMsg" aria-live="polite"></div>
+      <p class="hint">Noch keinen Code? Hol dir einen auf <a href="https://blue-fix.ch/newsletter" target="_blank" rel="noopener">blue-fix.ch/newsletter</a>.</p>
     </div>
 
     <div class="err" id="generr" style="margin:0 4px 12px"></div>
@@ -282,6 +298,52 @@ $('sonst').addEventListener('input',()=>$('sonst').classList.remove('bad'));
   }));
   ['wdatum','wzeit'].forEach(id=>$(id).addEventListener('input',()=>{$(id).classList.remove('bad');$('wunscherr').style.display='none'}));
 })();
+
+/* Rabattcode prüfen (Newsletter-Codes aus Firebase, gleiche Logik wie im Admin-Panel) */
+const PARTNER_CODES = { "BL-1401": "Elia" };
+function normNlCode(v){
+  const n = String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (n.startsWith('BL')) return /^BL[A-Z0-9]{4}$/.test(n) ? 'BL-' + n.slice(2) : '';
+  return /^[A-Z0-9]{4}$/.test(n) ? 'BL-' + n : '';
+}
+let rabatt = { code:'', state:'idle', docId:'', prozent:0, seq:0 };
+function rabattMsg(t, kind){
+  const m = $('rabattMsg'); m.textContent = t || '';
+  m.style.color = kind==='ok' ? 'var(--ok)' : kind==='bad' ? 'var(--err)' : 'var(--muted)';
+  $('rabatt').classList.toggle('ok', kind==='ok'); $('rabatt').classList.toggle('bad', kind==='bad');
+}
+async function checkRabatt(){
+  const raw = $('rabatt').value.trim();
+  if (!raw){ rabatt = { code:'', state:'idle', docId:'', prozent:0, seq:rabatt.seq+1 }; rabattMsg(''); return rabatt; }
+  const code = normNlCode(raw), seq = ++rabatt.seq;
+  if (!code){ rabatt = { code:'', state:'bad', docId:'', prozent:0, seq }; rabattMsg('Bitte prüfe den Code, er sieht so aus: BL-AB12.', 'bad'); return rabatt; }
+  if (PARTNER_CODES[code]){ rabatt = { code, state:'ok', docId:'', prozent:0, seq }; rabattMsg('✓ Code gültig.', 'ok'); return rabatt; }
+  rabattMsg('Prüfe Code …');
+  let res;
+  try {
+    if (!db) throw new Error('no-db');
+    const q = await db.collection(COLLECTION).where('typ','==','newsletter').where('code','==',code).limit(1).get();
+    if (q.empty) res = { code, state:'bad', docId:'', prozent:0, seq, msg:'Code nicht gefunden. Bitte prüfe die Eingabe.' };
+    else {
+      const d = q.docs[0], v = d.data();
+      res = v.codeUsed
+        ? { code, state:'bad', docId:d.id, prozent:0, seq, msg:'Dieser Code wurde schon eingelöst.' }
+        : { code, state:'ok', docId:d.id, prozent:10, seq, msg:'✓ Code gültig: 10% Rabatt auf eine Reparatur.' };
+    }
+  } catch (err) {
+    console.warn(err);
+    res = { code, state:'unchecked', docId:'', prozent:0, seq, msg:'Wir konnten den Code gerade nicht prüfen. Wir prüfen ihn bei deinem Auftrag.' };
+  }
+  if (seq !== rabatt.seq) return rabatt;          // neuere Eingabe ist schon unterwegs
+  rabatt = res; rabattMsg(res.msg, res.state==='ok' ? 'ok' : res.state==='bad' ? 'bad' : '');
+  return rabatt;
+}
+let rabattTimer;
+$('rabatt').addEventListener('input', () => {
+  rabatt.state = 'idle'; rabattMsg(''); clearTimeout(rabattTimer);
+  if ($('rabatt').value.trim().length >= 4) rabattTimer = setTimeout(checkRabatt, 600);
+});
+$('rabatt').addEventListener('blur', () => { clearTimeout(rabattTimer); if ($('rabatt').value.trim()) checkRabatt(); });
 $('imei').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g, ''));
 ['vorname','nachname','handy','email','modell','imei'].forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('bad')));
 
@@ -297,6 +359,8 @@ $('form').addEventListener('submit', async e => {
   const reps = msSel();
   if (!reps.length) { $('reperr').style.display = 'block'; $('tiles').classList.add('bad'); ok = false; }
   if (reps.includes('Sonstiges') && !$('sonst').value.trim()) { $('sonst').classList.add('bad'); ok = false; }
+  const rb = await checkRabatt();
+  if (rb.state === 'bad') ok = false;
   const z = document.querySelector('input[name=zahlung]:checked');
   const ab = document.querySelector('input[name=abgabe]:checked');
   if (!ab) { $('abgerr').style.display = 'block'; ok = false; }
@@ -310,7 +374,7 @@ $('form').addEventListener('submit', async e => {
     if (!wd || !wz || wd < todayStr) { $('wunscherr').textContent = wd && wd < todayStr ? 'Das Datum liegt in der Vergangenheit.' : 'Bitte wähle Datum und Uhrzeit.'; $('wunscherr').style.display = 'block'; }
   }
   if (!z) { $('payerr').style.display = 'block'; ok = false; }
-  if (!ok) { $('generr').textContent = 'Bitte fülle alle Felder korrekt aus.'; $('generr').style.display = 'block'; document.querySelector('.bad, #wunscherr[style*=block], #reperr[style*=block], #abgerr[style*=block], #payerr[style*=block]')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  if (!ok) { $('generr').textContent = rb.state==='bad' ? 'Bitte korrigiere den Rabattcode oder lass das Feld leer.' : 'Bitte fülle alle Felder korrekt aus.'; $('generr').style.display = 'block'; document.querySelector('.bad, #wunscherr[style*=block], #reperr[style*=block], #abgerr[style*=block], #payerr[style*=block]')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
 
   const data = {
     vorname: $('vorname').value.trim(), nachname: $('nachname').value.trim(),
@@ -319,7 +383,7 @@ $('form').addEventListener('submit', async e => {
     wunschDatum: wd, wunschZeit: wz,
     wunsch: wd ? new Date(wd + 'T12:00:00').toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) + ' um ' + wz + ' Uhr' : '',
     reparaturen: reps, auftrag: reps.join(' + '), beschreibung: reps.includes('Sonstiges') ? $('sonst').value.trim() : '',
-    abgabe: ab.value, zahlungsart: z.value, typ: "formular", status: "neu", at: Date.now()
+    abgabe: ab.value, zahlungsart: z.value, rabattcode: rb.code || '', rabattStatus: rb.code ? (rb.state==='ok' ? 'gueltig' : 'ungeprueft') : '', rabattDocId: rb.docId || '', typ: "formular", status: "neu", at: Date.now()
   };
   const btn = $('sendBtn'); btn.disabled = true; btn.textContent = "Wird gesendet…";
   try {
