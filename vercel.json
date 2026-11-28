@@ -6,6 +6,7 @@
     { "src": "^/chat/?$", "dest": "/chat.html" },
     { "src": "^/reparatur/?$", "dest": "/status.html" },
     { "src": "^/newsletter/?$", "dest": "/newsletter.html" },
+    { "src": "^/zahlung/?$", "dest": "/zahlung.html" },
     { "handle": "filesystem" }
   ]
 }
